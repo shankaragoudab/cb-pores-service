@@ -2,6 +2,7 @@ package com.igot.cb.transactional.cassandrautils;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
+import jakarta.annotation.PostConstruct;
 import jakarta.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +17,7 @@ import org.springframework.data.cassandra.repository.config.EnableCassandraRepos
 import java.net.InetSocketAddress;
 import java.util.Objects;
 @Configuration
-@ConfigurationProperties("spring.cassandra")
+@ConfigurationProperties("spring.data.cassandra")
 @EnableCassandraRepositories(basePackages = { "org.sunbird" }, cassandraTemplateRef = "sunbirdTemplate")
 public class SunbirdConfig extends CassandraConfig {
     private Logger logger = LoggerFactory.getLogger(SunbirdConfig.class);
@@ -24,6 +25,13 @@ public class SunbirdConfig extends CassandraConfig {
     private String sunbirdUser;
     @Value("${spring.cassandra.password}")
     private String sunbirdPassword;
+
+    @PostConstruct
+    public void logProperties() {
+        logger.info("Cassandra Config - ContactPoints: {}, Port: {}, Keyspace: {}, LocalDC: {}, Username: {}",
+                getContactPoints(), getPort(), getKeyspaceName(), getLocalDataCenter(), sunbirdUser);
+    }
+
     @NotNull
     @Bean(name = "sunbirdTemplate")
     public CassandraAdminTemplate cassandraTemplate(@Autowired CqlSession cqlSession) {

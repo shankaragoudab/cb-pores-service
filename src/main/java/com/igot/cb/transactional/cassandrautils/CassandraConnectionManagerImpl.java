@@ -75,7 +75,6 @@ public class CassandraConnectionManagerImpl implements CassandraConnectionManage
             // Load the properties required for connection
             PropertiesCache cache = PropertiesCache.getInstance();
             String cassandraHost = cache.getProperty(Constants.CASSANDRA_CONFIG_HOST);
-            int cassandraPort = Integer.parseInt(cache.getProperty(Constants.CASSANDRA_CONFIG_PORT));
 
             if (StringUtils.isBlank(cassandraHost)) {
                 throw new CustomException(
@@ -83,6 +82,7 @@ public class CassandraConnectionManagerImpl implements CassandraConnectionManage
                         "Cassandra host is not configured",
                         HttpStatus.INTERNAL_SERVER_ERROR);
             }
+            int cassandraPort = Integer.parseInt(cache.getProperty(Constants.CASSANDRA_CONFIG_PORT));
             List<String> hosts = Arrays.asList(cassandraHost.split(","));
             List<InetSocketAddress> contactPoints = hosts.stream()
                     .map(host -> new InetSocketAddress(host.trim(), cassandraPort))

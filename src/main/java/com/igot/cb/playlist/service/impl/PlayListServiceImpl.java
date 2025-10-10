@@ -108,6 +108,7 @@ public class PlayListServiceImpl implements PlayListSerive {
 
   @Override
   public ApiResponse createPlayList(JsonNode playListDetails) {
+      //adding code changes to improve code quality
     log.info("PlayListService::createPlayList:inside the method");
     payloadValidation.validatePayload(Constants.PLAY_LIST_VALIDATION_FILE_JSON, playListDetails);
     log.debug("PlayListService::createPlayList:validated the payload");
@@ -864,7 +865,7 @@ public class PlayListServiceImpl implements PlayListSerive {
         String reqJsonString = objectMapper.writeValueAsString(requestPayload);
         return JWT.create()
             .withClaim(Constants.REQUEST_PAYLOAD, reqJsonString)
-            .sign(Algorithm.HMAC256(Constants.JWT_SECRET_KEY));
+            .sign(Algorithm.HMAC256(cbServerProperties.getJwtSearchKeyName()));
       } catch (JsonProcessingException e) {
         logger.error("Error occurred while converting json object to json string", e);
       }

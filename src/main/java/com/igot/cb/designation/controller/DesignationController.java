@@ -11,6 +11,7 @@ import com.igot.cb.pores.util.Constants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -34,19 +35,17 @@ public class DesignationController {
   @Autowired
   private DesignationService designationService;
 
-  @PostMapping(value = "/upload", consumes = "multipart/form-data")
-  public ResponseEntity<String> loadDesignation(@RequestParam("file") MultipartFile file, @RequestHeader(Constants.X_AUTH_TOKEN) String token) {
-    try {
-      designationService.loadDesignation(file, token);
-      return ResponseEntity.ok("Loading of designations from excel is successful.");
-    } catch (Exception e) {
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-          .body("Error during loading of designation from excel: " + e.getMessage());
-    }
+  @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public ResponseEntity<ApiResponse> loadDesignation(
+          @RequestParam("file") MultipartFile file,
+          @RequestHeader(Constants.X_AUTH_TOKEN) String token) {
+      ApiResponse response = designationService.loadDesignation(file, token);
+      return ResponseEntity.status(response.getResponseCode()).body(response);
   }
 
 
-  @PostMapping("/term/create")
+
+    @PostMapping("/term/create")
   public ResponseEntity<ApiResponse> createTerm(@RequestBody JsonNode request) {
     ApiResponse response = designationService.createTerm(request);
     return new ResponseEntity<>(response, response.getResponseCode());

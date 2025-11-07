@@ -218,7 +218,7 @@ public class CiosContentServiceImpl implements CiosContentService {
                     contentNode.put(Constants.PUBLISHED_ON, "0000-00-00 00:00:00.000");
                     contentNode.put(Constants.UPDATED_DATE, timestamp.toString());
                     contentNode.put(Constants.CREATED_DATE, timestamp.toString());
-                    contentNode.put(Constants.CONTENT_ID,contentId);
+                    contentNode.put(Constants.CONTENT_ID, contentId);
                     if (eachData.getCompetencies_v5() != null) {
                         contentNode.set(Constants.COMPETENCIES_V5, eachData.getCompetencies_v5());
                     }

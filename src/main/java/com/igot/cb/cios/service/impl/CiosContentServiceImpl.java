@@ -203,16 +203,22 @@ public class CiosContentServiceImpl implements CiosContentService {
             String partnerCode=null;
             for (ObjectDto eachData : data) {
                 partnerCode=eachData.getContentPartner().get("partnerCode").asText();
-                if (eachData.getStatus().equals("draft")) {
+                String contentId;
+                if (Constants.DRAFT.equalsIgnoreCase(eachData.getStatus())) {
                     log.info("Status of the data {}",eachData.getStatus());
                     JsonNode jsonNode = eachData.getContentData();
                     payloadValidation.validatePayload(Constants.CIOS_CONTENT_VALIDATION_FILE_JSON,jsonNode);
                     ObjectNode contentNode = (ObjectNode) jsonNode.path("content");
+                    contentId = contentNode.path(Constants.CONTENT_ID).asText(null);
+                    if (StringUtils.isBlank(contentId)) {
+                        contentId = generateId();
+                    }
                     contentNode.put(Constants.STATUS, eachData.getStatus());
                     contentNode.put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS_FALSE);
                     contentNode.put(Constants.PUBLISHED_ON, "0000-00-00 00:00:00.000");
                     contentNode.put(Constants.UPDATED_DATE, timestamp.toString());
                     contentNode.put(Constants.CREATED_DATE, timestamp.toString());
+                    contentNode.put(Constants.CONTENT_ID, contentId);
                     if (eachData.getCompetencies_v5() != null) {
                         contentNode.set(Constants.COMPETENCIES_V5, eachData.getCompetencies_v5());
                     }
@@ -234,10 +240,15 @@ public class CiosContentServiceImpl implements CiosContentService {
                     JsonNode jsonNode = eachData.getContentData();
                     payloadValidation.validatePayload(Constants.CIOS_CONTENT_VALIDATION_FILE_JSON,jsonNode);
                     ObjectNode contentNode = (ObjectNode) jsonNode.path("content");
+                    contentId = contentNode.path(Constants.CONTENT_ID).asText(null);
+                    if (StringUtils.isBlank(contentId)) {
+                        contentId = generateId();
+                    }
                     contentNode.put(Constants.STATUS, eachData.getStatus());
                     contentNode.put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
                     contentNode.put(Constants.PUBLISHED_ON, timestamp.toString());
                     contentNode.put(Constants.UPDATED_DATE, timestamp.toString());
+                    contentNode.put(Constants.CONTENT_ID, contentId);
                     if (eachData.getCompetencies_v5() != null) {
                         payloadValidation.validatePayload(Constants.COMPETENCIESVALIDATION_FILE_JSON, eachData.getCompetencies_v5());
                         contentNode.set(Constants.COMPETENCIES_V5, eachData.getCompetencies_v5());
@@ -262,6 +273,7 @@ public class CiosContentServiceImpl implements CiosContentService {
                     Map<String, Object> map = objectMapper.convertValue(ciosContentEntity.getCiosData().get("content"), Map.class);
                     log.debug("map value for elastic search {}", map);
                     cacheService.putCache(ciosContentEntity.getContentId(), ciosContentEntity.getCiosData());
+                    cacheService.putCache(ciosContentEntity.getExternalId() + "_" + ciosContentEntity.getPartnerId(), ciosContentEntity.getCiosData());
                     esUtilService.addDocument(Constants.CIOS_INDEX_NAME, Constants.INDEX_TYPE, ciosContentEntity.getContentId(), map, cbServerProperties.getElasticCiosJsonPath());
                 }
                 else{
@@ -360,7 +372,7 @@ public class CiosContentServiceImpl implements CiosContentService {
             String partnerId = ciosRequestInput.path("content").path("contentPartner").get("id").asText();
             Optional<CiosContentEntity> ciosContentEntity = ciosRepository.findByExternalIdAndPartnerId(externalId, partnerId);
             if (!ciosContentEntity.isPresent()) {
-                igotContent.setContentId(generateId());
+                igotContent.setContentId(ciosRequestInput.path(Constants.CONTENT).path(Constants.CONTENT_ID).asText());
                 igotContent.setExternalId(externalId);
                 igotContent.setCreatedOn(currentTime);
                 igotContent.setLastUpdatedOn(currentTime);

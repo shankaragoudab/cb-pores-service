@@ -1,4 +1,4 @@
-FROM openjdk:openjdk:17.0.1-jdk-slim
+FROM openjdk:17.0.1-jdk-slim
 # Install necessary dependencies
 RUN apt-get update \
     && apt-get install -y \

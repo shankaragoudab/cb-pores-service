@@ -203,8 +203,8 @@ public class CiosContentServiceImpl implements CiosContentService {
             String partnerCode=null;
             for (ObjectDto eachData : data) {
                 partnerCode=eachData.getContentPartner().get("partnerCode").asText();
-                String contentId = null;
-                if (eachData.getStatus().equals("draft")) {
+                String contentId;
+                if (Constants.DRAFT.equalsIgnoreCase(eachData.getStatus())) {
                     log.info("Status of the data {}",eachData.getStatus());
                     JsonNode jsonNode = eachData.getContentData();
                     payloadValidation.validatePayload(Constants.CIOS_CONTENT_VALIDATION_FILE_JSON,jsonNode);

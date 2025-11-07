@@ -372,7 +372,7 @@ public class CiosContentServiceImpl implements CiosContentService {
             String partnerId = ciosRequestInput.path("content").path("contentPartner").get("id").asText();
             Optional<CiosContentEntity> ciosContentEntity = ciosRepository.findByExternalIdAndPartnerId(externalId, partnerId);
             if (!ciosContentEntity.isPresent()) {
-                igotContent.setContentId(ciosRequestInput.path("content").path("contentId").asText());
+                igotContent.setContentId(ciosRequestInput.path(Constants.CONTENT).path(Constants.CONTENT_ID).asText());
                 igotContent.setExternalId(externalId);
                 igotContent.setCreatedOn(currentTime);
                 igotContent.setLastUpdatedOn(currentTime);

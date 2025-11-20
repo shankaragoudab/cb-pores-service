@@ -95,7 +95,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 Map<String, Object> result = objectMapper.convertValue(updateJsonEntity, Map.class);
                 cacheService.putCache(updateJsonEntity.getId(), result);
                 if (!partnerDetails.path(Constants.PARTNERCODE).isMissingNode()) {
-                    log.info("deleting the content partner from cache");
+                    log.info("during content partner update Deleting cache for partner code {}", partnerDetails.path(Constants.PARTNERCODE).asText());
                     cacheService.deleteCache(partnerDetails.get(Constants.PARTNERCODE).asText());
                 }
                 log.info("updated the content partner");

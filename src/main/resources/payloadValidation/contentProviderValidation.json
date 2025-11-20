@@ -85,6 +85,31 @@
     },
     "documentUploadedDate": {
       "type": "string"
+    },
+    "overAllLimit": {
+      "type": "number",
+      "minimum": 0
+    },
+
+    "isUserWiseLimitEnabled": { "type": "boolean" },
+
+    "userWiseLimit": {
+      "type": "number",
+      "minimum": 0
+    },
+
+    "isConcurrentLimitEnabled": { "type": "boolean" },
+
+    "concurrentLimit": {
+      "type": "number",
+      "minimum": 0
+    },
+
+    "addKarmaPointEnabled": { "type": "boolean" },
+
+    "karmaPoints": {
+      "type": "number",
+      "minimum": 0
     }
   },
   "required": [
@@ -94,5 +119,58 @@
     "description",
     "partnerCode"
   ],
-  "additionalProperties": false
+  "additionalProperties": false,
+
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "isUserWiseLimitEnabled": { "const": true }
+        },
+        "required": ["isUserWiseLimitEnabled"]
+      },
+      "then": {
+        "required": ["userWiseLimit"]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "isConcurrentLimitEnabled": { "const": true }
+        },
+        "required": ["isConcurrentLimitEnabled"]
+      },
+      "then": {
+        "required": ["concurrentLimit", "userWiseLimit", "isUserWiseLimitEnabled"],
+        "properties": {
+          "isUserWiseLimitEnabled": { "const": true }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["userWiseLimit", "concurrentLimit"]
+      },
+      "then": {
+        "properties": {
+          "concurrentLimit": {
+            "type": "number",
+            "maximum": { "$data": "1/userWiseLimit" }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "addKarmaPointEnabled": { "const": true }
+        },
+        "required": ["addKarmaPointEnabled"]
+      },
+      "then": {
+        "required": ["karmaPoints"]
+      }
+    }
+  ]
+
 }

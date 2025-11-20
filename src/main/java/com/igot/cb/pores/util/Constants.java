@@ -335,7 +335,7 @@ public class Constants {
     public static final String COMPETENCIESVALIDATION_FILE_JSON = "/payloadValidation/competenciesValidation.json";
     public static final String TIMESTAMP = "timeStamp";
     public static final String IS_AUTHENTICATE = "isAuthenticate";
-    public static final Boolean ACTIVE_STATUS_AUTHENTICATE = false;
+    public static final Boolean IN_ACTIVE_STATUS = false;
     public static final String PARTNERCODE = "partnerCode";
     public static final String TOTAL_COURSES_COUNT = "totalCoursesCount";
     public static final String DRAFT_COURSES_COUNT = "draftCoursesCount";
@@ -379,6 +379,11 @@ public class Constants {
     public static final String FRAMEWORK_STATUS_KEY = "frameworkStatus";
     public static final String CASSANDRA_CONFIG_PORT = "cassandra.config.port";
     public static final String ACCESS_SETTINGS_ENABLED = "accessSettingsEnabled";
+    public static final String OVER_ALL_LIMIT = "overAllLimit";
+    public static final String USER_WISE_LIMIT_ENABLED = "isUserWiseLimitEnabled";
+    public static final String CONCURRENT_LIMIT_ENABLED = "isConcurrentLimitEnabled";
+    public static final String ADD_KARMA_POINT_ENABLED = "addKarmaPointEnabled";
+
 
     private Constants() {
     }

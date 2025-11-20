@@ -6,7 +6,7 @@ import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 import com.igot.cb.pores.util.ApiResponse;
 
 public interface ContentPartnerService {
-    ApiResponse createOrUpdate(JsonNode demandsJson);
+    ApiResponse createOrUpdate(JsonNode partnerDetails);
 
     ApiResponse read(String id);
 

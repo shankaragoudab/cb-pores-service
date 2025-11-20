@@ -71,7 +71,6 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
 
     private ApiResponse updateContentPartner(JsonNode partnerDetails) {
         ApiResponse response = ProjectUtil.createDefaultResponse(Constants.API_PARTNER_UPDATE);
-        Timestamp currentTime = new Timestamp(System.currentTimeMillis());
         JsonNode data = partnerDetails.get(Constants.DATA);
         payloadValidation.validatePayload(Constants.PAYLOAD_VALIDATION_FILE_CONTENT_PROVIDER, data);
         String partnerName = partnerDetails.path(Constants.DATA).get(Constants.CONTENT_PARTNER_NAME).asText();
@@ -86,32 +85,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 return response;
             }
             ContentPartnerEntity jsonEntity = content.get();
-            jsonEntity.setUpdatedOn(currentTime);
-            jsonEntity.setIsActive(Constants.ACTIVE_STATUS);
-            jsonEntity.setTrasformContentJson(partnerDetails.get(Constants.TRANSFORM_CONTENT_JSON));
-            jsonEntity.setTransformProgressJson(partnerDetails.get(Constants.TRANSFORM_PROGRESS_JSON));
-            jsonEntity.setCertificateTemplateUrl(partnerDetails.path(Constants.CERTIFICATE_TEMPLATE_URL).asText(" "));
-            jsonEntity.setServiceRegistryDetails(partnerDetails.get(Constants.SERVICE_REGISTRY_DETAILS));
-            jsonEntity.setContentFileValidation(partnerDetails.get(Constants.CONTENT_FILE_VALIDATION));
-            jsonEntity.setTransformContentViaApi(partnerDetails.get(Constants.TRANSFORM_CONTENT_VIA_API));
-            jsonEntity.setTransformProgressViaApi(partnerDetails.get(Constants.TRANSFORM_PROGRESS_VIA_API));
-            ObjectNode objectNode = (ObjectNode) partnerDetails;
-            objectNode.remove(Constants.TRANSFORM_CONTENT_JSON);
-            objectNode.remove(Constants.TRANSFORM_PROGRESS_JSON);
-            objectNode.remove(Constants.CERTIFICATE_TEMPLATE_URL);
-            objectNode.remove(Constants.ID);
-            objectNode.remove(Constants.CONTENT_FILE_VALIDATION);
-            objectNode.remove(Constants.TRANSFORM_CONTENT_VIA_API);
-            objectNode.remove(Constants.TRANSFORM_PROGRESS_VIA_API);
-            ObjectNode dataNode = (ObjectNode) objectNode.remove(Constants.DATA);
-            dataNode.put(Constants.CREATED_ON, String.valueOf(content.get().getCreatedOn()));
-            dataNode.put(Constants.UPDATED_ON, String.valueOf(currentTime));
-            dataNode.set(Constants.PARTNERCODE, jsonEntity.getData().get(Constants.PARTNERCODE));
-            ((ObjectNode) partnerDetails).put(Constants.DOCUMENT_UPLOADED_DATE, partnerDetails.path(Constants.DOCUMENT_UPLOADED_DATE).asText(""));
-            dataNode.put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
-            updateOtherDetailsWithDefaultValue(dataNode,jsonEntity);
-            addSearchTags(dataNode);
-            jsonEntity.setData(dataNode);
+            createContentPartnerEntity(jsonEntity,partnerDetails);
             ContentPartnerEntity updateJsonEntity = entityRepository.save(jsonEntity);
             if (!ObjectUtils.isEmpty(updateJsonEntity)) {
                 Map<String, Object> jsonMap =
@@ -120,9 +94,9 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 esUtilService.updateDocument(Constants.CONTENT_PROVIDER_INDEX_NAME, Constants.INDEX_TYPE, existingId, jsonMap, cbServerProperties.getElasticContentJsonPath());
                 Map<String, Object> result = objectMapper.convertValue(updateJsonEntity, Map.class);
                 cacheService.putCache(updateJsonEntity.getId(), result);
-                if (!dataNode.path(Constants.PARTNERCODE).isMissingNode()) {
+                if (!partnerDetails.path(Constants.PARTNERCODE).isMissingNode()) {
                     log.info("deleting the content partner from cache");
-                    cacheService.deleteCache(dataNode.get(Constants.PARTNERCODE).asText());
+                    cacheService.deleteCache(partnerDetails.get(Constants.PARTNERCODE).asText());
                 }
                 log.info("updated the content partner");
                 response.setResult(result);
@@ -134,6 +108,35 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
             response.setResponseCode(HttpStatus.BAD_REQUEST);
         }
         return response;
+    }
+
+    private void createContentPartnerEntity(ContentPartnerEntity jsonEntity,JsonNode partnerDetails) {
+        Timestamp currentTime = new Timestamp(System.currentTimeMillis());
+        jsonEntity.setUpdatedOn(currentTime);
+        jsonEntity.setIsActive(Constants.ACTIVE_STATUS);
+        jsonEntity.setTrasformContentJson(partnerDetails.get(Constants.TRANSFORM_CONTENT_JSON));
+        jsonEntity.setTransformProgressJson(partnerDetails.get(Constants.TRANSFORM_PROGRESS_JSON));
+        jsonEntity.setCertificateTemplateUrl(partnerDetails.path(Constants.CERTIFICATE_TEMPLATE_URL).asText(" "));
+        jsonEntity.setServiceRegistryDetails(partnerDetails.get(Constants.SERVICE_REGISTRY_DETAILS));
+        jsonEntity.setContentFileValidation(partnerDetails.get(Constants.CONTENT_FILE_VALIDATION));
+        jsonEntity.setTransformContentViaApi(partnerDetails.get(Constants.TRANSFORM_CONTENT_VIA_API));
+        jsonEntity.setTransformProgressViaApi(partnerDetails.get(Constants.TRANSFORM_PROGRESS_VIA_API));
+        ObjectNode objectNode = (ObjectNode) partnerDetails;
+        objectNode.remove(Constants.TRANSFORM_CONTENT_JSON);
+        objectNode.remove(Constants.TRANSFORM_PROGRESS_JSON);
+        objectNode.remove(Constants.CERTIFICATE_TEMPLATE_URL);
+        objectNode.remove(Constants.ID);
+        objectNode.remove(Constants.CONTENT_FILE_VALIDATION);
+        objectNode.remove(Constants.TRANSFORM_CONTENT_VIA_API);
+        objectNode.remove(Constants.TRANSFORM_PROGRESS_VIA_API);
+        ObjectNode dataNode = (ObjectNode) objectNode.remove(Constants.DATA);
+        dataNode.put(Constants.CREATED_ON, String.valueOf(jsonEntity.getCreatedOn()));
+        dataNode.put(Constants.UPDATED_ON, String.valueOf(currentTime));
+        ((ObjectNode) partnerDetails).put(Constants.DOCUMENT_UPLOADED_DATE, partnerDetails.path(Constants.DOCUMENT_UPLOADED_DATE).asText(""));
+        dataNode.put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
+        updateOtherDetailsWithDefaultValue(dataNode,jsonEntity);
+        addSearchTags(dataNode);
+        jsonEntity.setData(dataNode);
     }
 
     private void updateOtherDetailsWithDefaultValue(ObjectNode dataNode,ContentPartnerEntity content) {
@@ -212,23 +215,9 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
         contentPartnerEntity.setCreatedOn(currentTime);
         contentPartnerEntity.setUpdatedOn(currentTime);
         contentPartnerEntity.setIsActive(Constants.ACTIVE_STATUS);
-        contentPartnerEntity.setTrasformContentJson(partnerDetails.get(Constants.TRANSFORM_CONTENT_JSON));
-        contentPartnerEntity.setTransformProgressJson(partnerDetails.get(Constants.TRANSFORM_PROGRESS_JSON));
         contentPartnerEntity.setCertificateTemplateUrl(partnerDetails.path(Constants.CERTIFICATE_TEMPLATE_URL).asText(" "));
-        contentPartnerEntity.setServiceRegistryDetails(partnerDetails.get(Constants.SERVICE_REGISTRY_DETAILS));
-        contentPartnerEntity.setContentFileValidation(partnerDetails.get(Constants.CONTENT_FILE_VALIDATION));
-        contentPartnerEntity.setTransformContentViaApi(partnerDetails.get(Constants.TRANSFORM_CONTENT_VIA_API));
-        contentPartnerEntity.setTransformProgressViaApi(partnerDetails.get(Constants.TRANSFORM_PROGRESS_VIA_API));
-        ObjectNode objectNode = (ObjectNode) partnerDetails;
-        objectNode.remove(Constants.TRANSFORM_CONTENT_JSON);
-        objectNode.remove(Constants.TRANSFORM_PROGRESS_JSON);
-        objectNode.remove(Constants.CERTIFICATE_TEMPLATE_URL);
-        objectNode.remove(Constants.SERVICE_REGISTRY_DETAILS);
-        objectNode.remove(Constants.CONTENT_FILE_VALIDATION);
-        objectNode.remove(Constants.TRANSFORM_CONTENT_VIA_API);
-        objectNode.remove(Constants.TRANSFORM_PROGRESS_VIA_API);
-        addSearchTags(objectNode);
-        contentPartnerEntity.setData(objectNode);
+        addSearchTags(partnerDetails);
+        contentPartnerEntity.setData(partnerDetails);
         ContentPartnerEntity saveJsonEntity = entityRepository.save(contentPartnerEntity);
         Map<String, Object> map = objectMapper.convertValue(saveJsonEntity.getData(), Map.class);
         esUtilService.addDocument(Constants.CONTENT_PROVIDER_INDEX_NAME, Constants.INDEX_TYPE, id, map, cbServerProperties.getElasticContentJsonPath());

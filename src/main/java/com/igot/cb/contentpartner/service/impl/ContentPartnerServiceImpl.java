@@ -98,7 +98,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                     log.info("during content partner update Deleting cache for partner code {}", partnerDetails.path(Constants.PARTNERCODE).asText());
                     cacheService.deleteCache(partnerDetails.get(Constants.PARTNERCODE).asText());
                 }
-                log.info("updated the content partner");
+                log.info(Constants.UPDATED_CONTENT_PARTNER);
                 response.setResult(result);
                 response.setResponseCode(HttpStatus.OK);
             }
@@ -208,7 +208,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
             log.info("during content partner create Deleting cache for partner code {}", partnerDetails.path(Constants.PARTNERCODE).asText());
             cacheService.deleteCache(partnerDetails.get(Constants.PARTNERCODE).asText());
         }
-        log.info("Content partner created");
+        log.info(Constants.CONTENT_PARTNER_CREATED);
         response.setResult(result);
         response.setResponseCode(HttpStatus.OK);
         return response;

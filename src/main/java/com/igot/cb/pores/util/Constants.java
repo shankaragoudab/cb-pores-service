@@ -383,6 +383,8 @@ public class Constants {
     public static final String USER_WISE_LIMIT_ENABLED = "isUserWiseLimitEnabled";
     public static final String CONCURRENT_LIMIT_ENABLED = "isConcurrentLimitEnabled";
     public static final String ADD_KARMA_POINT_ENABLED = "addKarmaPointEnabled";
+    public static final String UPDATED_CONTENT_PARTNER = "updated the content partner";
+    public static final String CONTENT_PARTNER_CREATED = "Content partner created successfully";
 
 
     private Constants() {

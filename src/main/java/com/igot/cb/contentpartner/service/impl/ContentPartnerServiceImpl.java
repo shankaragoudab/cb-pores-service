@@ -139,35 +139,16 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
         jsonEntity.setData(dataNode);
     }
 
-    private void updateOtherDetailsWithDefaultValue(ObjectNode dataNode,ContentPartnerEntity content) {
-        if (dataNode.path(Constants.IS_AUTHENTICATE).isMissingNode()) {
-            dataNode.set(Constants.IS_AUTHENTICATE, content.getData().get(Constants.IS_AUTHENTICATE));
-        }
-        if (dataNode.path(Constants.PROVIDER_TIPS).isMissingNode()) {
-            (dataNode).set(Constants.PROVIDER_TIPS, content.getData().get(Constants.PROVIDER_TIPS));
-        }
-        if (dataNode.path(Constants.TOTAL_COURSES_COUNT).isMissingNode()) {
-            dataNode.set(Constants.TOTAL_COURSES_COUNT, content.getData().get(Constants.TOTAL_COURSES_COUNT));
-        }
-        if (dataNode.path(Constants.DRAFT_COURSES_COUNT).isMissingNode()) {
-            dataNode.set(Constants.DRAFT_COURSES_COUNT, content.getData().get(Constants.DRAFT_COURSES_COUNT));
-        }
-        if (dataNode.path(Constants.LIVE_COURSES_COUNT).isMissingNode()) {
-            dataNode.set(Constants.LIVE_COURSES_COUNT, content.getData().get(Constants.LIVE_COURSES_COUNT));
-        }
-        if (dataNode.path(Constants.OVER_ALL_LIMIT).isMissingNode()) {
-            dataNode.set(Constants.OVER_ALL_LIMIT, content.getData().get(Constants.OVER_ALL_LIMIT));
-        }
-        if (dataNode.path(Constants.USER_WISE_LIMIT_ENABLED).isMissingNode()) {
-            dataNode.set(Constants.USER_WISE_LIMIT_ENABLED, content.getData().get(Constants.USER_WISE_LIMIT_ENABLED));
-        }
-        if (dataNode.path(Constants.CONCURRENT_LIMIT_ENABLED).isMissingNode()) {
-            dataNode.set(Constants.CONCURRENT_LIMIT_ENABLED, content.getData().get(Constants.CONCURRENT_LIMIT_ENABLED));
-        }
-        if (dataNode.path(Constants.ADD_KARMA_POINT_ENABLED).isMissingNode()) {
-            dataNode.set(Constants.ADD_KARMA_POINT_ENABLED, content.getData().get(Constants.ADD_KARMA_POINT_ENABLED));
-        }
+    private void updateOtherDetailsWithDefaultValue(ObjectNode dataNode, ContentPartnerEntity content) {
+        ObjectNode existingData = (ObjectNode) content.getData();
+
+        existingData.fieldNames().forEachRemaining(field -> {
+            if (dataNode.path(field).isMissingNode()) {
+                dataNode.set(field, existingData.get(field));
+            }
+        });
     }
+
 
     private ApiResponse createContentPartner(JsonNode partnerDetails) {
         log.info("ContentPartnerServiceImpl::createContentPartner");

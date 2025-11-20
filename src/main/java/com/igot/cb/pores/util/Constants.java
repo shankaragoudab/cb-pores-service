@@ -385,6 +385,8 @@ public class Constants {
     public static final String ADD_KARMA_POINT_ENABLED = "addKarmaPointEnabled";
     public static final String UPDATED_CONTENT_PARTNER = "updated the content partner";
     public static final String CONTENT_PARTNER_CREATED = "Content partner created successfully";
+    public static final String CONTENT_PARTNER_CACHE_DELETE = "during content partner create Deleting cache for partner code {}";
+    public static final String CONTENT_PARTNER_UPDATE_CACHE_DELETE = "during content partner update Deleting cache for partner code {}";
 
 
     private Constants() {

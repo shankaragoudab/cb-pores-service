@@ -95,7 +95,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 Map<String, Object> result = objectMapper.convertValue(updateJsonEntity, Map.class);
                 cacheService.putCache(updateJsonEntity.getId(), result);
                 if (!partnerDetails.path(Constants.PARTNERCODE).isMissingNode()) {
-                    log.info("during content partner update Deleting cache for partner code {}", partnerDetails.path(Constants.PARTNERCODE).asText());
+                    log.info(Constants.CONTENT_PARTNER_UPDATE_CACHE_DELETE, partnerDetails.path(Constants.PARTNERCODE).asText());
                     cacheService.deleteCache(partnerDetails.get(Constants.PARTNERCODE).asText());
                 }
                 log.info(Constants.UPDATED_CONTENT_PARTNER);
@@ -205,7 +205,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
         Map<String, Object> result = objectMapper.convertValue(saveJsonEntity, Map.class);
         cacheService.putCache(saveJsonEntity.getId(), result);
         if (!partnerDetails.path(Constants.PARTNERCODE).isMissingNode()) {
-            log.info("during content partner create Deleting cache for partner code {}", partnerDetails.path(Constants.PARTNERCODE).asText());
+            log.info(Constants.CONTENT_PARTNER_CACHE_DELETE, partnerDetails.path(Constants.PARTNERCODE).asText());
             cacheService.deleteCache(partnerDetails.get(Constants.PARTNERCODE).asText());
         }
         log.info(Constants.CONTENT_PARTNER_CREATED);

@@ -149,19 +149,6 @@
     },
     {
       "if": {
-        "required": ["userWiseLimit", "concurrentLimit"]
-      },
-      "then": {
-        "properties": {
-          "concurrentLimit": {
-            "type": "number",
-            "maximum": { "$data": "1/userWiseLimit" }
-          }
-        }
-      }
-    },
-    {
-      "if": {
         "properties": {
           "addKarmaPointEnabled": { "const": true }
         },

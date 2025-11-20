@@ -70,11 +70,11 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
     }
 
     private ApiResponse updateContentPartner(JsonNode partnerDetails) {
+        log.info("ContentPartnerServiceImpl::createContentPartner");
         ApiResponse response = ProjectUtil.createDefaultResponse(Constants.API_PARTNER_UPDATE);
         JsonNode data = partnerDetails.get(Constants.DATA);
         payloadValidation.validatePayload(Constants.PAYLOAD_VALIDATION_FILE_CONTENT_PROVIDER, data);
         String partnerName = partnerDetails.path(Constants.DATA).get(Constants.CONTENT_PARTNER_NAME).asText();
-        log.info("Updating content partner entity");
         String existingId = partnerDetails.get("id").asText();
         Optional<ContentPartnerEntity> content = entityRepository.findById(existingId);
         if (content.isPresent()) {
@@ -170,6 +170,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
     }
 
     private ApiResponse createContentPartner(JsonNode partnerDetails) {
+        log.info("ContentPartnerServiceImpl::createContentPartner");
         ApiResponse response = ProjectUtil.createDefaultResponse(Constants.API_PARTNER_CREATE);
         Timestamp currentTime = new Timestamp(System.currentTimeMillis());
         payloadValidation.validatePayload(Constants.PAYLOAD_VALIDATION_FILE_CONTENT_PROVIDER, partnerDetails);
@@ -193,7 +194,6 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
             response.setResponseCode(HttpStatus.BAD_REQUEST);
             return response;
         }
-        log.info("ContentPartnerServiceImpl::createOrUpdate:creating content partner provider");
         String id = String.valueOf(UUID.randomUUID());
         ((ObjectNode) partnerDetails).set(Constants.PARTNERCODE, partnerDetails.get("partnerCode"));
         ((ObjectNode) partnerDetails).put(Constants.ID, id);

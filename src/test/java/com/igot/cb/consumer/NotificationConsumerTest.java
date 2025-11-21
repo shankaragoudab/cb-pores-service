@@ -53,6 +53,7 @@ class NotificationConsumerTest {
         // Inject mocks
         injectField(notificationConsumer, "requestHandlerService", requestHandlerService);
         injectField(notificationConsumer, "configuration", cbServerProperties);
+        injectField(notificationConsumer, "cassandraOperation", cassandraOperation);
         setField(notificationConsumer, "mapper", objectMapper);
 
         record = new ConsumerRecord<>("topic", 0, 0L, null, "");
@@ -81,12 +82,15 @@ class NotificationConsumerTest {
 
             notificationConsumer.demandContentConsumer(record);
         }
+        verify(cassandraOperation, atLeastOnce()).getRecordsByPropertiesWithoutFiltering(any(), any(), any(), isNull(), anyInt());
     }
 
     @Test
     void testDemandContentConsumer_invalidPayload_shouldLogError() {
         ConsumerRecord<String, String> record = new ConsumerRecord<>("test", 0, 0L, "key", "{invalidJson");
         notificationConsumer.demandContentConsumer(record);
+        verifyNoInteractions(requestHandlerService);
+        verifyNoInteractions(cassandraOperation);
     }
 
     @Test
@@ -325,8 +329,6 @@ class NotificationConsumerTest {
         when(mapper.writeValueAsString(any())).thenReturn("{}");
 
         ReflectionTestUtils.invokeMethod(spyConsumer, "sendNotification", request, urlPath);
-
-        // If no exceptions thrown, success
     }
 
     @Test
@@ -357,7 +359,15 @@ class NotificationConsumerTest {
         ReflectionTestUtils.setField(notificationConsumer, "cassandraOperation", cassandraOperation);
        // ReflectionTestUtils.setField(notificationConsumer, "cbServerProperties", cbServerProperties);
 
-        // ✅ Mock email template Cassandra fetch
+        // Mock organisation details
+        Map<String, Object> orgDetails = new HashMap<>();
+        orgDetails.put(Constants.USER_ROOT_ORG_NAME, "TestMDO");
+        List<Map<String, Object>> orgList = List.of(orgDetails);
+
+        when(cassandraOperation.getRecordsByPropertiesWithoutFiltering(
+                eq("sunbird"), eq("organisation"), eq(Map.of("id", "root-123")), isNull(), eq(1)))
+                .thenReturn(orgList);
+
         Map<String, Object> template1 = new HashMap<>();
         template1.put(Constants.TEMPLATE, "<html>Demand ID: $demandId, MDO: $mdoName</html>");
         List<Map<String, Object>> templateList1 = List.of(template1);
@@ -369,15 +379,6 @@ class NotificationConsumerTest {
                 eq(Collections.singletonList(Constants.TEMPLATE)),
                 isNull()))
                 .thenReturn(templateList1);
-
-        // Mock organisation details
-        Map<String, Object> orgDetails = new HashMap<>();
-        orgDetails.put(Constants.USER_ROOT_ORG_NAME, "TestMDO");
-        List<Map<String, Object>> orgList = List.of(orgDetails);
-
-        when(cassandraOperation.getRecordsByPropertiesWithoutFiltering(
-                eq("sunbird"), eq("organisation"), eq(Map.of("id", "root-123")), isNull(), eq(1)))
-                .thenReturn(orgList);
 
 
         // Mock user search response
@@ -413,9 +414,12 @@ class NotificationConsumerTest {
         when(cbServerProperties.getNotificationAsyncPath()).thenReturn("/v1/notify");
 
 
-
         // When
         notificationConsumer.demandContentConsumer(record);
+        verify(cassandraOperation, times(1)).getRecordsByPropertiesWithoutFiltering(
+                eq("sunbird"), eq("organisation"), eq(Map.of("id", "root-123")), isNull(), eq(1));
+
+        verify(requestHandlerService, atLeastOnce()).fetchResultUsingPost(anyString(), any(), any());
     }
 
 

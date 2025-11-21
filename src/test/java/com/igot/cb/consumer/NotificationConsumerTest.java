@@ -329,6 +329,8 @@ class NotificationConsumerTest {
         when(mapper.writeValueAsString(any())).thenReturn("{}");
 
         ReflectionTestUtils.invokeMethod(spyConsumer, "sendNotification", request, urlPath);
+        verify(mapper, times(1)).writeValueAsString(eq(request));
+        verify(requestHandlerService, times(1)).fetchResultUsingPost(contains("http://notifyhost"), anyMap(), isNull());
     }
 
     @Test

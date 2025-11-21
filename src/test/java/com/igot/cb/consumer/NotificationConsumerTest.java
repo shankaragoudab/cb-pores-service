@@ -53,6 +53,7 @@ class NotificationConsumerTest {
         // Inject mocks
         injectField(notificationConsumer, "requestHandlerService", requestHandlerService);
         injectField(notificationConsumer, "configuration", cbServerProperties);
+        injectField(notificationConsumer, "cassandraOperation", cassandraOperation);
         setField(notificationConsumer, "mapper", objectMapper);
 
         record = new ConsumerRecord<>("topic", 0, 0L, null, "");
@@ -81,12 +82,16 @@ class NotificationConsumerTest {
 
             notificationConsumer.demandContentConsumer(record);
         }
+        verify(cassandraOperation, atLeastOnce()).getRecordsByPropertiesWithoutFiltering(any(), any(), any(), isNull(), anyInt());
     }
 
     @Test
     void testDemandContentConsumer_invalidPayload_shouldLogError() {
         ConsumerRecord<String, String> record = new ConsumerRecord<>("test", 0, 0L, "key", "{invalidJson");
         notificationConsumer.demandContentConsumer(record);
+        verifyNoInteractions(requestHandlerService);
+        // Added assertion: ensure Cassandra operations were not invoked for invalid payload
+        verifyNoInteractions(cassandraOperation);
     }
 
     @Test
@@ -325,8 +330,6 @@ class NotificationConsumerTest {
         when(mapper.writeValueAsString(any())).thenReturn("{}");
 
         ReflectionTestUtils.invokeMethod(spyConsumer, "sendNotification", request, urlPath);
-
-        // If no exceptions thrown, success
     }
 
     @Test
@@ -356,19 +359,6 @@ class NotificationConsumerTest {
         ReflectionTestUtils.setField(notificationConsumer, "requestHandlerService", requestHandlerService);
         ReflectionTestUtils.setField(notificationConsumer, "cassandraOperation", cassandraOperation);
        // ReflectionTestUtils.setField(notificationConsumer, "cbServerProperties", cbServerProperties);
-
-        // ✅ Mock email template Cassandra fetch
-        Map<String, Object> template1 = new HashMap<>();
-        template1.put(Constants.TEMPLATE, "<html>Demand ID: $demandId, MDO: $mdoName</html>");
-        List<Map<String, Object>> templateList1 = List.of(template1);
-
-        when(cassandraOperation.getRecordsByPropertiesByKey(
-                eq(Constants.KEYSPACE_SUNBIRD),
-                eq(Constants.TABLE_EMAIL_TEMPLATE),
-                eq(Map.of(Constants.NAME, "templateId")),
-                eq(Collections.singletonList(Constants.TEMPLATE)),
-                isNull()))
-                .thenReturn(templateList1);
 
         // Mock organisation details
         Map<String, Object> orgDetails = new HashMap<>();
@@ -413,9 +403,14 @@ class NotificationConsumerTest {
         when(cbServerProperties.getNotificationAsyncPath()).thenReturn("/v1/notify");
 
 
-
         // When
         notificationConsumer.demandContentConsumer(record);
+
+        // Added assertions: ensure organisation lookup and downstream calls occurred
+        verify(cassandraOperation, times(1)).getRecordsByPropertiesWithoutFiltering(
+                eq("sunbird"), eq("organisation"), eq(Map.of("id", "root-123")), isNull(), eq(1));
+
+        verify(requestHandlerService, atLeastOnce()).fetchResultUsingPost(anyString(), any(), any());
     }
 
 

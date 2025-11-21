@@ -255,6 +255,14 @@ class PlayListServiceImplTest {
         assert response.getResponseCode() == HttpStatus.OK;
         assert response.getResult().get(Constants.STATUS).equals(Constants.DELETED_SUCCESSFULLY);
         assert response.getResult().get(Constants.ID).equals(id);
+
+        assertFalse(playListEntity.getIsActive());
+
+        // Verify interactions with collaborators
+        verify(playListRepository).findByIdAndIsActive(id, true);
+        verify(playListRepository).save(any(PlayListEntity.class));
+        verify(redisCacheMngr).hdel(anyString(), anyString(), anyInt());
+        verify(esUtilService).deleteDocument(eq(id), eq(Constants.PLAYLIST_INDEX_NAME));
     }
 
     /**

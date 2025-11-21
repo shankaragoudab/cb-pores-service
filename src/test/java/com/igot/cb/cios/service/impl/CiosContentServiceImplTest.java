@@ -1190,8 +1190,6 @@ class CiosContentServiceImplTest {
         Method method = CiosContentServiceImpl.class.getDeclaredMethod("fetchAndUpdateContentCountsInPartnerDb", String.class);
         method.setAccessible(true);
         method.invoke(service, "PARTNER001");
-
-        // Added assertions: ensure no downstream calls were made when status facet is missing
         verify(contentPartnerService, never()).getContentDetailsByPartnerCode(anyString());
         verify(contentPartnerService, never()).createOrUpdate(any(JsonNode.class));
         verify(restTemplate, never()).exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), eq(JsonNode.class));

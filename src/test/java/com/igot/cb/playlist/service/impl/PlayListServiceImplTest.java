@@ -258,7 +258,6 @@ class PlayListServiceImplTest {
 
         assertFalse(playListEntity.getIsActive());
 
-        // Verify interactions with collaborators
         verify(playListRepository).findByIdAndIsActive(id, true);
         verify(playListRepository).save(any(PlayListEntity.class));
         verify(redisCacheMngr).hdel(anyString(), anyString(), anyInt());

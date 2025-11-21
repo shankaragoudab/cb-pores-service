@@ -90,7 +90,6 @@ class NotificationConsumerTest {
         ConsumerRecord<String, String> record = new ConsumerRecord<>("test", 0, 0L, "key", "{invalidJson");
         notificationConsumer.demandContentConsumer(record);
         verifyNoInteractions(requestHandlerService);
-        // Added assertion: ensure Cassandra operations were not invoked for invalid payload
         verifyNoInteractions(cassandraOperation);
     }
 
@@ -369,6 +368,18 @@ class NotificationConsumerTest {
                 eq("sunbird"), eq("organisation"), eq(Map.of("id", "root-123")), isNull(), eq(1)))
                 .thenReturn(orgList);
 
+        Map<String, Object> template1 = new HashMap<>();
+        template1.put(Constants.TEMPLATE, "<html>Demand ID: $demandId, MDO: $mdoName</html>");
+        List<Map<String, Object>> templateList1 = List.of(template1);
+
+        when(cassandraOperation.getRecordsByPropertiesByKey(
+                eq(Constants.KEYSPACE_SUNBIRD),
+                eq(Constants.TABLE_EMAIL_TEMPLATE),
+                eq(Map.of(Constants.NAME, "templateId")),
+                eq(Collections.singletonList(Constants.TEMPLATE)),
+                isNull()))
+                .thenReturn(templateList1);
+
 
         // Mock user search response
         Map<String, Object> personalDetails = new HashMap<>();
@@ -405,8 +416,6 @@ class NotificationConsumerTest {
 
         // When
         notificationConsumer.demandContentConsumer(record);
-
-        // Added assertions: ensure organisation lookup and downstream calls occurred
         verify(cassandraOperation, times(1)).getRecordsByPropertiesWithoutFiltering(
                 eq("sunbird"), eq("organisation"), eq(Map.of("id", "root-123")), isNull(), eq(1));
 

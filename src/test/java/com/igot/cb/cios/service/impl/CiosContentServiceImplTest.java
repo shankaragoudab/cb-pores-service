@@ -592,6 +592,7 @@ class CiosContentServiceImplTest {
         SearchCriteria searchCriteria = new SearchCriteria();
         SearchResult expectedResult = new SearchResult();
 
+        when(cbServerProperties.getRedisKeyJwtTokenString()).thenReturn("testTokenKey");
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get(anyString())).thenReturn(expectedResult);
 
@@ -635,6 +636,7 @@ class CiosContentServiceImplTest {
         searchCriteria.setFilterCriteriaMap(null);
 
         ValueOperations<String, SearchResult> valueOperations = mock(ValueOperations.class);
+        when(cbServerProperties.getRedisKeyJwtTokenString()).thenReturn("testTokenKey");
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get(anyString())).thenReturn(null);
 
@@ -673,6 +675,7 @@ class CiosContentServiceImplTest {
         SearchResult expectedResult = new SearchResult();
 
         ValueOperations<String, SearchResult> valueOperations = mock(ValueOperations.class);
+        when(cbServerProperties.getRedisKeyJwtTokenString()).thenReturn("testTokenKey");
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get(anyString())).thenReturn(null);
 
@@ -703,6 +706,7 @@ class CiosContentServiceImplTest {
         SearchCriteria searchCriteria = new SearchCriteria();
         SearchResult expectedResult = new SearchResult();
 
+        when(cbServerProperties.getRedisKeyJwtTokenString()).thenReturn("testTokenKey");
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get(any())).thenReturn(null);
         when(esUtilService.searchDocuments(eq(Constants.CIOS_INDEX_NAME), any())).thenReturn(expectedResult);

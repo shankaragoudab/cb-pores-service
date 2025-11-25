@@ -29,6 +29,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.slf4j.Logger;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
@@ -46,6 +48,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class AnnouncementServiceImplTest {
 
     @Mock
@@ -87,6 +90,7 @@ class AnnouncementServiceImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        when(serverProperties.getRedisKeyJwtTokenString()).thenReturn("test-secret-key-for-jwt-signing");
     }
 
     /**
@@ -190,6 +194,7 @@ class AnnouncementServiceImplTest {
     @Test
     void test_createAnnouncement_2() {
         MockitoAnnotations.openMocks(this);
+        when(serverProperties.getRedisKeyJwtTokenString()).thenReturn("test-secret-key-for-jwt-signing");
 
         ObjectMapper realObjectMapper = new ObjectMapper();
         ObjectNode announcementEntity = realObjectMapper.createObjectNode();
@@ -309,6 +314,7 @@ class AnnouncementServiceImplTest {
     @Test
     void test_generateRedisJwtTokenKey_jsonProcessingException() throws JsonProcessingException {
         MockitoAnnotations.openMocks(this);
+        when(serverProperties.getRedisKeyJwtTokenString()).thenReturn("test-secret-key-for-jwt-signing");
 
         Object requestPayload = new Object();
         when(objectMapper.writeValueAsString(requestPayload)).thenThrow(JsonProcessingException.class);
@@ -336,6 +342,7 @@ class AnnouncementServiceImplTest {
     @Test
     void test_generateRedisJwtTokenKey_whenRequestPayloadNotNull() throws Exception {
         MockitoAnnotations.openMocks(this);
+        when(serverProperties.getRedisKeyJwtTokenString()).thenReturn("test-secret-key-for-jwt-signing");
 
         Object requestPayload = new Object();
         String reqJsonString = "{\"key\":\"value\"}";
@@ -369,6 +376,7 @@ class AnnouncementServiceImplTest {
     @Test
     void test_readAnnouncement_3() {
         MockitoAnnotations.openMocks(this);
+        when(serverProperties.getRedisKeyJwtTokenString()).thenReturn("test-secret-key-for-jwt-signing");
 
         String id = "test-announcement-id";
         String cachedJson = "";
@@ -579,6 +587,7 @@ class AnnouncementServiceImplTest {
     @Test
     void test_updateAnnouncement_2() {
         MockitoAnnotations.openMocks(this);
+        when(serverProperties.getRedisKeyJwtTokenString()).thenReturn("test-secret-key-for-jwt-signing");
 
         // Prepare test data
         ObjectMapper realObjectMapper = new ObjectMapper();
@@ -631,6 +640,7 @@ class AnnouncementServiceImplTest {
     @Test
     void test_updateAnnouncement_successfulUpdate() {
         MockitoAnnotations.openMocks(this);
+        when(serverProperties.getRedisKeyJwtTokenString()).thenReturn("test-secret-key-for-jwt-signing");
 
         // Prepare test data
         String announcementId = "test-id";

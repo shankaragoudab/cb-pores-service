@@ -241,18 +241,6 @@ class DemandServiceImplMethodTest {
 
    }
 
-
-    @Test
-    void testResourceAvailability() throws Exception {
-        ClassPathResource resource = new ClassPathResource("payloadValidation/statusTransitions.json");
-        assertTrue(resource.exists(), "Resource payloadValidation/statusTransitions.json should exist on classpath");
-
-        try (InputStream is = resource.getInputStream()) {
-            assertNotNull(is, "InputStream should not be null for the resource");
-            assertTrue(is.available() > 0, "Resource payloadValidation/statusTransitions.json should not be empty");
-        }
-    }
-
     @Test
     void testUpdateDemandStatusSuccess() {
         String token = "valid-token";

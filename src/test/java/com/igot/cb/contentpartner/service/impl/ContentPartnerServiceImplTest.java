@@ -649,4 +649,93 @@ class ContentPartnerServiceImplTest {
         verify(cacheService).putCache(ID, mockEntity);
         verify(objectMapper).convertValue(mockEntity, Map.class);
     }
+
+    @Test
+    void testCreateContentPartner_Success() throws Exception {
+        ObjectNode request = realObjectMapper.createObjectNode();
+        request.put(Constants.CONTENT_PARTNER_NAME, "NewPartner");
+        request.put("partnerCode", "P001");
+        when(entityRepository.findByContentPartnerName("NewPartner")).thenReturn(Optional.empty());
+        when(entityRepository.findByPartnerCode("P001")).thenReturn(Optional.empty());
+
+        ContentPartnerEntity saved = new ContentPartnerEntity();
+        saved.setId("generated-id");
+        saved.setCreatedOn(new Timestamp(System.currentTimeMillis()));
+        saved.setUpdatedOn(saved.getCreatedOn());
+        ObjectNode dataNode = realObjectMapper.createObjectNode();
+        dataNode.put(Constants.CONTENT_PARTNER_NAME, "NewPartner");
+        saved.setData(dataNode);
+
+        when(entityRepository.save(any(ContentPartnerEntity.class))).thenReturn(saved);
+        when(objectMapper.convertValue(eq(saved.getData()), eq(Map.class))).thenReturn(new HashMap<>());
+        when(cbServerProperties.getElasticContentJsonPath()).thenReturn("elastic-path");
+        ApiResponse resp = contentPartnerService.createOrUpdate(request);
+
+        assertNotNull(resp);
+        assertEquals(HttpStatus.OK, resp.getResponseCode());
+        verify(entityRepository).save(any(ContentPartnerEntity.class));
+        verify(esUtilService).addDocument(eq(Constants.CONTENT_PROVIDER_INDEX_NAME), eq(Constants.INDEX_TYPE), anyString(), anyMap(), anyString());
+        verify(cacheService).putCache(eq(saved.getId()), any());
+    }
+
+    @Test
+    void testUpdateContentPartner_Success() throws Exception {
+        ObjectNode dataNode = realObjectMapper.createObjectNode();
+        dataNode.put(Constants.CONTENT_PARTNER_NAME, "UpdatedName");
+
+        ObjectNode request = realObjectMapper.createObjectNode();
+        request.put(Constants.ID, "id-123");
+        request.set(Constants.DATA, dataNode);
+
+        ContentPartnerEntity existing = new ContentPartnerEntity();
+        existing.setId("id-123");
+        existing.setCreatedOn(new Timestamp(System.currentTimeMillis() - 10000));
+        ObjectNode existingData = realObjectMapper.createObjectNode();
+        existingData.put(Constants.PARTNERCODE, "PCODE");
+        existing.setData(existingData);
+
+        when(entityRepository.findById("id-123")).thenReturn(Optional.of(existing));
+        when(entityRepository.findByContentPartnerName("UpdatedName")).thenReturn(Optional.empty());
+
+        ContentPartnerEntity saved = new ContentPartnerEntity();
+        saved.setId("id-123");
+        saved.setData(dataNode);
+        when(entityRepository.save(any(ContentPartnerEntity.class))).thenReturn(saved);
+        when(objectMapper.convertValue(any(), any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .thenReturn(new HashMap<>());
+        when(objectMapper.convertValue(any(), eq(Map.class))).thenReturn(new HashMap<>());
+        when(cbServerProperties.getElasticContentJsonPath()).thenReturn("elastic-path");
+        ApiResponse resp = contentPartnerService.createOrUpdate(request);
+
+        assertEquals(HttpStatus.OK, resp.getResponseCode());
+        verify(entityRepository).save(any(ContentPartnerEntity.class));
+        verify(esUtilService).updateDocument(eq(Constants.CONTENT_PROVIDER_INDEX_NAME), eq(Constants.INDEX_TYPE), eq("id-123"), anyMap(), anyString());
+    }
+    @Test
+    void testUpdateContentPartner_NotFound_ReturnsBadRequest() {
+        ObjectNode dataNode = realObjectMapper.createObjectNode();
+        dataNode.put(Constants.CONTENT_PARTNER_NAME, "Name");
+
+        ObjectNode request = realObjectMapper.createObjectNode();
+        request.put(Constants.ID, "missing-id");
+        request.set(Constants.DATA, dataNode);
+        when(entityRepository.findById("missing-id")).thenReturn(Optional.empty());
+        ApiResponse resp = contentPartnerService.createOrUpdate(request);
+        assertEquals(HttpStatus.BAD_REQUEST, resp.getResponseCode());
+        assertEquals(Constants.FAILED, resp.getParams().getStatus());
+        assertEquals(Constants.DATA_NOT_PRESENT, resp.getParams().getErrMsg());
+    }
+
+    @Test
+    void testCreateOrUpdate_ValidationFailure_ReturnsInternalServerError() {
+        ObjectNode request = realObjectMapper.createObjectNode();
+        request.put(Constants.CONTENT_PARTNER_NAME, "AnyName");
+        doThrow(new RuntimeException("validation failed")).when(payloadValidation)
+                .validatePayload(eq(Constants.PAYLOAD_VALIDATION_FILE_CONTENT_PROVIDER), any());
+        ApiResponse resp = contentPartnerService.createOrUpdate(request);
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, resp.getResponseCode());
+        assertEquals(Constants.FAILED, resp.getParams().getStatus());
+        assertTrue(resp.getParams().getErrMsg().contains("validation failed"));
+    }
+
 }

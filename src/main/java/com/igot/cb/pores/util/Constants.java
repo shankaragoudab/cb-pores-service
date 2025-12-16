@@ -311,7 +311,7 @@ public class Constants {
     public static final String FRAMEWORK = "framework";
     public static final String CHANNELS = "channels";
     public static final String MASTER = "master";
-    public static final String CONTENT_PROVIDER_INDEX_NAME = "content_provider";
+    public static final String CONTENT_PROVIDER_INDEX_NAME = "content_provider_alias";
     public static final String CONTENT_PARTNER = "contentPartner";
     public static final String CATEGORIES  = "categories";
     public static final String ASSOCIATIONS = "associations";
@@ -389,6 +389,10 @@ public class Constants {
     public static final String CONTENT_PARTNER_UPDATE_CACHE_DELETE = "during content partner update Deleting cache for partner code {}";
     public static final String DIFFICULTY_LEVEL = "difficultyLevel";
 
+    public static final String CHANNEL = "channel";
+    public static final String ASCENDING = "ASC";
+    public static final String ORDER_BY = "orderBy";
+    public static final String ORDER_DIRECTION = "orderDirection";
 
     private Constants() {
     }

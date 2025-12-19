@@ -216,7 +216,27 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
 
     private JsonNode addSearchTags(JsonNode formattedData) {
         List<String> searchTags = new ArrayList<>();
-        searchTags.add(formattedData.get("contentPartnerName").textValue().toLowerCase());
+
+        // Preserve existing searchTags if present
+        if (formattedData.has("searchTags") && formattedData.get("searchTags").isArray()) {
+            ArrayNode existingSearchTags = (ArrayNode) formattedData.get("searchTags");
+            existingSearchTags.forEach(tag -> {
+                if (tag.isTextual() && !tag.asText().isEmpty()) {
+                    searchTags.add(tag.asText());
+                }
+            });
+        }
+
+        // Add contentPartnerName to searchTags
+        if (formattedData.has("contentPartnerName")) {
+            String partnerName = formattedData.get("contentPartnerName").textValue();
+            if (StringUtils.isNotBlank(partnerName)) {
+                if (!searchTags.contains(partnerName.toLowerCase())) {
+                    searchTags.add(partnerName.toLowerCase());
+                }
+            }
+        }
+
         ArrayNode searchTagsArray = objectMapper.valueToTree(searchTags);
         ((ObjectNode) formattedData).put("searchTags", searchTagsArray);
         return formattedData;

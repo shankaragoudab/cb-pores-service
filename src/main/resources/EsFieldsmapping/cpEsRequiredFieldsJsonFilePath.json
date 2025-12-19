@@ -51,5 +51,8 @@
   },
   "liveCoursesCount": {
     "type": "number"
+  },
+  "internalOrgId": {
+    "type": "string"
   }
 }

@@ -110,6 +110,9 @@
     "karmaPoints": {
       "type": "number",
       "minimum": 0
+    },
+    "internalOrgId": {
+      "type": "string"
     }
   },
   "required": [

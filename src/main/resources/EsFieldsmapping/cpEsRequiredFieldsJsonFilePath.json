@@ -54,5 +54,11 @@
   },
   "internalOrgId": {
     "type": "string"
+  },
+  "providerType": {
+    "type": "string"
+  },
+  "isTrainingInstitution" : {
+    "type": "boolean"
   }
 }

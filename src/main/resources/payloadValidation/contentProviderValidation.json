@@ -8,7 +8,7 @@
     "contentPartnerName": {
       "minLength": 3,
       "maxLength": 70,
-      "pattern": "^[a-zA-Z][a-zA-Z0-9\\.\\-_\\$/:\\[\\]'!\\s]*$",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9\\.\\-_\\$/:\\[\\]'!\\s\\(\\)]*$",
       "type": "string"
     },
     "description": {

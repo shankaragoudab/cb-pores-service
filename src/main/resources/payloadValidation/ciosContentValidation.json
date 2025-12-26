@@ -55,7 +55,10 @@
           "type": "string"
         },
         "sourceProvider": {
-          "type": "string"
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "required": [

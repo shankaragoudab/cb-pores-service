@@ -53,6 +53,9 @@
         },
         "programId": {
           "type": "string"
+        },
+        "sourceProvider": {
+          "type": "string"
         }
       },
       "required": [

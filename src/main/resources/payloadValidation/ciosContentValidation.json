@@ -54,10 +54,14 @@
         "programId": {
           "type": "string"
         },
-        "sourceProvider": {
+        "courseProvider": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "object",
+            "properties": {
+              "name": "string",
+              "logoUrl": "string"
+            }
           }
         }
       },

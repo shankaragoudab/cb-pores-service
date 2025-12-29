@@ -61,7 +61,8 @@
             "properties": {
               "name": "string",
               "logoUrl": "string"
-            }
+            },
+            "additionalProperties": false
           }
         }
       },

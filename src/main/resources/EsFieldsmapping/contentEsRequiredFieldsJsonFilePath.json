@@ -55,7 +55,7 @@
   "difficultyLevel": {
     "type": "text"
   },
-  "sourceProvider": {
+  "courseProvider": {
     "type": "keyword"
   }
 }

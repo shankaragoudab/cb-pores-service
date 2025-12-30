@@ -302,50 +302,21 @@ class ContentPartnerRegistrationServiceImplTest {
 
     // READ TEST CASES
     @Test
-    void testRead_Success_FromCache() throws Exception {
+    void testRead_Success_FromDatabase() {
+
         String id = "test-id-123";
 
-        Map<String, Object> cachedData = Map.of("id", id, "contentPartnerName", "Org1");
-
-        String cachedJson = realMapper.writeValueAsString(cachedData);
-
-        when(cacheService.getCache(id)).thenReturn(cachedJson);
-        when(objectMapper.readValue(eq(cachedJson), any(TypeReference.class)))
-                .thenReturn(cachedData);
-
-        ApiResponse response = service.read(id);
-
-        assertEquals(HttpStatus.OK, response.getResponseCode());
-        assertEquals(cachedData, response.getResult());
-    }
-
-    @Test
-    void testRead_Success_FromDatabase() {
-        String id = "123";
-
-        ContentPartnerRegistrationEntity entity = new ContentPartnerRegistrationEntity();
+        ContentPartnerRegistrationEntity entity =
+                new ContentPartnerRegistrationEntity();
         entity.setId(id);
 
-        ObjectNode data = realMapper.createObjectNode();
-        data.put("id", id);
-        data.put("contentPartnerName", "Org2");
-        data.put("email", "org2@gmail.com");
-        data.put("status", Constants.APPROVED);
-
-        entity.setData(data);
-        entity.setCreatedOn(new Timestamp(System.currentTimeMillis()));
-        entity.setUpdatedOn(new Timestamp(System.currentTimeMillis()));
-
-        when(cacheService.getCache(id)).thenReturn(null);
-        when(registrationRepository.findById(id)).thenReturn(Optional.of(entity));
-
-        Map<String, Object> expectedResult = new HashMap<>();
-        expectedResult.put("id", id);
+        when(registrationRepository.findById(id))
+                .thenReturn(Optional.of(entity));
 
         when(objectMapper.convertValue(entity, Map.class))
-                .thenReturn(expectedResult);
+                .thenReturn(Map.of("id", id));
 
-        ApiResponse response = service.read(id);
+        ApiResponse response = service.read(id, null);
 
         assertEquals(HttpStatus.OK, response.getResponseCode());
         assertEquals(id, response.getResult().get("id"));
@@ -354,34 +325,74 @@ class ContentPartnerRegistrationServiceImplTest {
 
     @Test
     void testRead_NotFound() {
+
         String id = "unknown";
-        when(cacheService.getCache(id)).thenReturn(null);
-        when(registrationRepository.findById(id))
-                .thenReturn(Optional.empty());
-
-        ApiResponse response = service.read(id);
-
+        when(registrationRepository.findById(id)).thenReturn(Optional.empty());
+        ApiResponse response = service.read(id, null);
         assertEquals(HttpStatus.BAD_REQUEST, response.getResponseCode());
         assertEquals(Constants.INVALID_ID, response.getParams().getErrMsg());
     }
 
-
     @Test
     void testRead_EmptyId() {
-        ApiResponse response = service.read("");
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getResponseCode());
-        assertEquals(Constants.ID_NOT_FOUND, response.getParams().getErrMsg());
+        ApiResponse response = service.read("", null);
+        assertEquals(HttpStatus.BAD_REQUEST, response.getResponseCode());
+        assertEquals(Constants.ERR_ID_OR_EMAIL_REQUIRED, response.getParams().getErrMsg());
     }
-
     @Test
     void testRead_CacheException() throws Exception {
         String id = "test-id";
-        when(cacheService.getCache(id)).thenReturn("invalid-json");
-        when(objectMapper.readValue(anyString(), any(TypeReference.class)))
-                .thenThrow(new RuntimeException("JSON parsing error"));
-        ApiResponse response = service.read(id);
+        when(registrationRepository.findById(id)).thenThrow(new RuntimeException("DB error"));
+        ApiResponse response = service.read(id, null);
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getResponseCode());
-        assertTrue(response.getParams().getErrMsg().contains("JSON parsing error"));
+        assertTrue(response.getParams().getErrMsg().contains("DB error")
+        );
+    }
+    @Test
+    void testRead_ByEmail_Success() throws Exception {
+        String email = "org1@gmail.com";
+        String id = "id-1";
+        ContentPartnerRegistrationEntity entity = new ContentPartnerRegistrationEntity();
+        entity.setId(id);
+        SearchResult searchResult = new SearchResult();
+        searchResult.setData(realMapper.valueToTree(List.of(Map.of(Constants.ID, id))));
+        when(esUtilService.searchDocuments(eq(Constants.CONTENT_PARTNER_REGISTRATION_INDEX_NAME), any(SearchCriteria.class))).thenReturn(searchResult);
+        when(registrationRepository.findById(id))
+                .thenReturn(Optional.of(entity));
+        when(objectMapper.convertValue(entity, Map.class))
+                .thenReturn(Map.of("email", email));
+        ApiResponse response = service.read(null, email);
+        assertEquals(HttpStatus.OK, response.getResponseCode());
+        assertEquals(email, response.getResult().get("email"));
+    }
+
+    @Test
+    void testRead_ByEmail_NotFoundInES() throws Exception {
+        SearchResult searchResult = new SearchResult();
+        searchResult.setData(realMapper.createArrayNode());
+        when(esUtilService.searchDocuments(
+                eq(Constants.CONTENT_PARTNER_REGISTRATION_INDEX_NAME),
+                any(SearchCriteria.class)
+        )).thenReturn(searchResult);
+        ApiResponse response = service.read(null, "noone@gmail.com");
+        assertEquals(HttpStatus.BAD_REQUEST, response.getResponseCode());
+        assertEquals(Constants.INVALID_EMAIL, response.getParams().getErrMsg());
+    }
+
+    @Test
+    void testRead_ByIdAndEmail_NotFound() throws Exception {
+        String email = "a@b.com";
+        String providedId = "1";
+        String esId = "2";
+        SearchResult searchResult = new SearchResult();
+        searchResult.setData(realMapper.valueToTree(List.of(Map.of(Constants.ID, esId))));
+        when(esUtilService.searchDocuments(
+                eq(Constants.CONTENT_PARTNER_REGISTRATION_INDEX_NAME),
+                any(SearchCriteria.class)
+        )).thenReturn(searchResult);
+        ApiResponse response = service.read(providedId, email);
+        assertEquals(HttpStatus.BAD_REQUEST, response.getResponseCode());
+        assertEquals(Constants.INVALID_ID_OR_EMAIL, response.getParams().getErrMsg());
     }
 
     // SEARCH TEST CASES

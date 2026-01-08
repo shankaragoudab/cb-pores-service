@@ -78,11 +78,13 @@ public class NotificationConsumer {
             Object emailObj = event.get(Constants.EVENT_EMAIL);
             Object partnerNameObj = event.get(Constants.EVENT_PARTNER_NAME);
             Object registrationIdObj = event.get(Constants.EVENT_REGISTRATION_ID);
+            Object contactNameObj = event.get(Constants.EVENT_CONTACT_NAME);
 
             if (!(statusObj instanceof String)
                     || !(emailObj instanceof String)
                     || !(partnerNameObj instanceof String)
-                    || !(registrationIdObj instanceof String)) {
+                    || !(registrationIdObj instanceof String)
+                    || !(contactNameObj instanceof String)) {
 
                 logger.error("Invalid content partner registration event payload: {}", event);
                 return;
@@ -92,21 +94,14 @@ public class NotificationConsumer {
             String email = (String) emailObj;
             String partnerName = (String) partnerNameObj;
             String registrationId = (String) registrationIdObj;
-
+            String contactName = (String) contactNameObj;
             String subject;
-            String statusMessage;
             if (Constants.PENDING.equals(status)) {
-                subject = Constants.CP_REG_SUCCESS_SUBJECT;
-                statusMessage = Constants.CP_REG_SUCCESS_MESSAGE;
-
+                subject = Constants.CP_REG_SUCCESS_SUBJECT.replace(Constants.APPLICATION_ID_TAG, registrationId);
             } else if (Constants.APPROVED.equals(status)) {
                 subject = Constants.CP_REG_APPROVED_SUBJECT;
-                statusMessage = Constants.CP_REG_APPROVED_MESSAGE;
-
             } else if (Constants.REJECTED.equals(status)) {
                 subject = Constants.CP_REG_REJECTED_SUBJECT;
-                statusMessage = Constants.CP_REG_REJECTED_MESSAGE;
-
             } else {
                 logger.warn("Unsupported content partner registration status: {}", status);
                 return;
@@ -116,13 +111,18 @@ public class NotificationConsumer {
             mailNotificationDetails.put(Constants.EMAIL_ID_LIST, Collections.singletonList(email));
             mailNotificationDetails.put(Constants.SUB, subject);
             mailNotificationDetails.put(Constants.CREATED_BY, partnerName);
-            mailNotificationDetails.put(Constants.TEMPLATE, Constants.CONTENT_PARTNER_REG_TEMPLATE);
-
+            if (Constants.PENDING.equals(status)) {
+                mailNotificationDetails.put(Constants.TEMPLATE, Constants.CONTENT_PARTNER_REG_SUCCESS_TEMPLATE);
+            } else if (Constants.APPROVED.equals(status)) {
+                mailNotificationDetails.put(Constants.TEMPLATE, Constants.CONTENT_PARTNER_REG_APPROVED_TEMPLATE);
+            } else {
+                mailNotificationDetails.put(Constants.TEMPLATE, Constants.CONTENT_PARTNER_REG_REJECTION_TEMPLATE);
+            }
             mailNotificationDetails.put(Constants.PARTNER_NAME, partnerName);
             mailNotificationDetails.put(Constants.EVENT_REGISTRATION_ID, registrationId);
-            mailNotificationDetails.put(Constants.STATUS_MESSAGE, statusMessage);
             mailNotificationDetails.put(Constants.ORG, partnerName);
             mailNotificationDetails.put(Constants.ORG_NAME, partnerName);
+            mailNotificationDetails.put(Constants.EVENT_CONTACT_NAME, contactName);
             sendContentPartnerNotificationAsync(mailNotificationDetails);
 
         } catch (Exception e) {
@@ -133,10 +133,11 @@ public class NotificationConsumer {
     private void sendContentPartnerNotificationAsync(Map<String, Object> mailNotificationDetails) {
 
         Map<String, Object> params = new HashMap<>();
-        params.put("name", mailNotificationDetails.get("name"));
-        params.put("registrationId", mailNotificationDetails.get("registrationId"));
-        params.put("statusMessage", mailNotificationDetails.get("statusMessage"));
-        params.put(Constants.ORG_NAME, mailNotificationDetails.get(Constants.ORG_NAME));
+        params.put(Constants.EVENT_REGISTRATION_ID, mailNotificationDetails.get(Constants.EVENT_REGISTRATION_ID));
+        params.put(Constants.STATUS_MESSAGE, mailNotificationDetails.get(Constants.STATUS_MESSAGE));
+        params.put(Constants.EVENT_CONTACT_NAME, mailNotificationDetails.get(Constants.EVENT_CONTACT_NAME));
+        params.put(Constants.APPLICATION_ID_TAG, mailNotificationDetails.get(Constants.EVENT_REGISTRATION_ID));
+        params.put(Constants.ORGANISATION_NAME, mailNotificationDetails.get(Constants.ORG_NAME));
         params.put(Constants.FROM_EMAIL, configuration.getSupportEmail());
         String templateName = (String) mailNotificationDetails.get(Constants.TEMPLATE);
 

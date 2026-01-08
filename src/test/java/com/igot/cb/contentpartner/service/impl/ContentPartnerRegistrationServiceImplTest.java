@@ -166,6 +166,7 @@ class ContentPartnerRegistrationServiceImplTest {
         data.put("status", Constants.PENDING);
         data.put("email", "partner@example.com");
         data.put("contentPartnerName", "Test Partner");
+        data.put(Constants.APPLICATION_ID, "APP-456");
         existing.setData(data);
 
         when(registrationRepository.findById("123")).thenReturn(Optional.of(existing));
@@ -189,7 +190,7 @@ class ContentPartnerRegistrationServiceImplTest {
         assertEquals(Constants.APPROVED, capturedEvent.get("status"));
         assertEquals("partner@example.com", capturedEvent.get("email"));
         assertEquals("Test Partner", capturedEvent.get("partnerName"));
-        assertEquals("123", capturedEvent.get("registrationId"));
+        assertEquals("APP-456", capturedEvent.get("registrationId"));
     }
 
     @Test
@@ -207,6 +208,7 @@ class ContentPartnerRegistrationServiceImplTest {
         data.put("status", Constants.PENDING);
         data.put("email", "rejected@example.com");
         data.put("contentPartnerName", "Rejected Partner");
+        data.put(Constants.APPLICATION_ID, "APP-456");
         existing.setData(data);
 
         when(registrationRepository.findById("456")).thenReturn(Optional.of(existing));
@@ -228,7 +230,7 @@ class ContentPartnerRegistrationServiceImplTest {
         assertEquals(Constants.REJECTED, capturedEvent.get("status"));
         assertEquals("rejected@example.com", capturedEvent.get("email"));
         assertEquals("Rejected Partner", capturedEvent.get("partnerName"));
-        assertEquals("456", capturedEvent.get("registrationId"));
+        assertEquals("APP-456", capturedEvent.get("registrationId"));
     }
 
     @Test

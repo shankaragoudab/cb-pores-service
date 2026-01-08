@@ -34,12 +34,10 @@ import java.util.*;
 public class ContentPartnerRegistrationServiceImpl implements ContentPartnerRegistrationService {
     private final PayloadValidation payloadValidation;
     private final ContentPartnerRegistrationRepository registrationRepository;
-    private final CacheService cacheService;
     private final ObjectMapper objectMapper;
     private final CbServerProperties cbServerProperties;
     private final EsUtilService esUtilService;
     private final AccessTokenValidator accessTokenValidator;
-    private final ContentPartnerRepository contentPartnerRepository;
     private  final ContentPartnerService contentPartnerService;
 
     @Autowired
@@ -48,22 +46,18 @@ public class ContentPartnerRegistrationServiceImpl implements ContentPartnerRegi
     public ContentPartnerRegistrationServiceImpl(
             PayloadValidation payloadValidation,
             ContentPartnerRegistrationRepository registrationRepository,
-            CacheService cacheService,
             ObjectMapper objectMapper,
             CbServerProperties cbServerProperties,
             EsUtilService esUtilService,
             AccessTokenValidator accessTokenValidator,
-            ContentPartnerRepository contentPartnerRepository,
             ContentPartnerService contentPartnerService
     ) {
         this.payloadValidation = payloadValidation;
         this.registrationRepository = registrationRepository;
-        this.cacheService = cacheService;
         this.objectMapper = objectMapper;
         this.cbServerProperties = cbServerProperties;
         this.esUtilService = esUtilService;
         this.accessTokenValidator=accessTokenValidator;
-        this.contentPartnerRepository = contentPartnerRepository;
         this.contentPartnerService = contentPartnerService;
     }
 
@@ -108,7 +102,6 @@ public class ContentPartnerRegistrationServiceImpl implements ContentPartnerRegi
         Map<String, Object> map = objectMapper.convertValue(savedEntity.getData(), Map.class);
         esUtilService.addDocument(Constants.CONTENT_PARTNER_REGISTRATION_INDEX_NAME, Constants.INDEX_TYPE, id, map, cbServerProperties.getElasticContentPartnerJsonPath());
         Map<String, Object> result = objectMapper.convertValue(savedEntity, Map.class);
-        cacheService.putCache(savedEntity.getId(), result);
         // send mail to content partner about successful registration
         Map<String, Object> event = new HashMap<>();
         event.put(Constants.EVENT_STATUS, Constants.PENDING);
@@ -173,7 +166,6 @@ public class ContentPartnerRegistrationServiceImpl implements ContentPartnerRegi
         );
 
         Map<String, Object> resultMap = objectMapper.convertValue(updated, Map.class);
-        cacheService.putCache(updated.getId(), resultMap);
         Map<String, Object> event = new HashMap<>();
         event.put(Constants.EVENT_STATUS, newStatus);
         event.put(Constants.EVENT_EMAIL, email);
@@ -193,7 +185,7 @@ public class ContentPartnerRegistrationServiceImpl implements ContentPartnerRegi
         }
         try {
             ObjectNode registrationData = registrationEntity.getData().deepCopy();
-            registrationData.remove(List.of(Constants.CREATED_ON, Constants.UPDATED_ON, Constants.STATUS,Constants.EMAIL,Constants.PHONE_NUMBER,Constants.CONTACT_NAME));
+            registrationData.remove(List.of(Constants.CREATED_ON, Constants.UPDATED_ON, Constants.STATUS, Constants.EMAIL, Constants.PHONE_NUMBER, Constants.CONTACT_NAME, Constants.APPLICATION_ID));
             log.info(Constants.CONTENT_PARTNER_CREATE_START, registrationEntity.getId());
             ApiResponse createResponse = contentPartnerService.createContentPartner(registrationData);
             if (HttpStatus.OK.equals(createResponse.getResponseCode())) {

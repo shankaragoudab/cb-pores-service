@@ -97,7 +97,6 @@ class ContentPartnerRegistrationServiceImplTest {
         assertEquals(HttpStatus.OK, response.getResponseCode());
         verify(registrationRepository).save(any());
         verify(esUtilService).addDocument(anyString(), anyString(), anyString(), anyMap(), anyString());
-        verify(cacheService).putCache(anyString(), any());
         // Capture and verify the Kafka event
         ArgumentCaptor<Map<String, Object>> eventCaptor = ArgumentCaptor.forClass(Map.class);
         verify(kafkaProducer).push(eq("content-partner-topic"), eventCaptor.capture());
@@ -180,7 +179,6 @@ class ContentPartnerRegistrationServiceImplTest {
 
         assertEquals(HttpStatus.OK, resp.getResponseCode());
         verify(esUtilService).updateDocument(anyString(), anyString(), anyString(), anyMap(), anyString());
-        verify(cacheService).putCache(eq("123"), any());
 
         // Capture and verify the Kafka event
         ArgumentCaptor<Map<String, Object>> eventCaptor = ArgumentCaptor.forClass(Map.class);

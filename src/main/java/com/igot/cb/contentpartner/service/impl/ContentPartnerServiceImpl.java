@@ -195,7 +195,10 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
         ((ObjectNode) partnerDetails).put(Constants.CONCURRENT_LIMIT_ENABLED, Constants.IN_ACTIVE_STATUS);
         ((ObjectNode) partnerDetails).put(Constants.ADD_KARMA_POINT_ENABLED, Constants.IN_ACTIVE_STATUS);
         ((ObjectNode) partnerDetails).put(Constants.IS_AUTHENTICATE, Constants.IN_ACTIVE_STATUS);
-        ((ObjectNode) partnerDetails).set(Constants.PROVIDER_TIPS, ((ObjectNode) partnerDetails).arrayNode());
+        ObjectNode node = (ObjectNode) partnerDetails;
+        if (!node.has(Constants.PROVIDER_TIPS)) {
+            node.putArray(Constants.PROVIDER_TIPS);
+        }
         ((ObjectNode) partnerDetails).put(Constants.CREATED_ON, String.valueOf(currentTime));
         ((ObjectNode) partnerDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
         ((ObjectNode) partnerDetails).put(Constants.DOCUMENT_UPLOADED_DATE, partnerDetails.path(Constants.DOCUMENT_UPLOADED_DATE).asText(""));

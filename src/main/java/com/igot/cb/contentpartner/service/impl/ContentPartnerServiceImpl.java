@@ -202,6 +202,8 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
         ((ObjectNode) partnerDetails).put(Constants.CREATED_ON, String.valueOf(currentTime));
         ((ObjectNode) partnerDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
         ((ObjectNode) partnerDetails).put(Constants.DOCUMENT_UPLOADED_DATE, partnerDetails.path(Constants.DOCUMENT_UPLOADED_DATE).asText(""));
+        ((ObjectNode) partnerDetails).put(Constants.PROVIDER_TYPE, Constants.EXTERNAL);
+        ((ObjectNode) partnerDetails).put(Constants.IS_TRAINING_INSTITUTE, Constants.ACTIVE_STATUS_FALSE);
         ContentPartnerEntity contentPartnerEntity = new ContentPartnerEntity();
         contentPartnerEntity.setId(id);
         contentPartnerEntity.setCreatedOn(currentTime);

@@ -433,6 +433,10 @@ public class Constants {
     public static final String ES_ID_FOUND_FOR_EMAIL_AND_APP_ID = "Elasticsearch ID found for email: {} and applicationId: {} → id: {}";
     public static final String ES_NO_RECORD_FOR_EMAIL_AND_APP_ID = "No Elasticsearch record found for email: {} and applicationId: {}";
     public static final String ES_ERROR_FETCHING_ID_FOR_EMAIL_AND_APP_ID = "Error while fetching Elasticsearch ID for email: {} and applicationId: {}";
+    public static final String IS_TRAINING_INSTITUTE = "isTrainingInstitution";
+    public static final String EXTERNAL = "external";
+    public static final String PROVIDER_TYPE = "providerType";
+
 
 
     private Constants() {

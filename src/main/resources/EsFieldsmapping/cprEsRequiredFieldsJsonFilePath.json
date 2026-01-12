@@ -26,6 +26,9 @@
   "status": {
     "type": "text"
   },
+  "searchTags": {
+    "type": "keyword"
+  },
   "createdOn": {
     "type": "date",
     "format": ["yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", "epoch_millis"]

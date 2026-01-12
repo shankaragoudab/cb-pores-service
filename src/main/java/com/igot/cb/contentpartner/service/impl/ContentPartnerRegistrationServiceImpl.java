@@ -3,6 +3,7 @@ package com.igot.cb.contentpartner.service.impl;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.igot.cb.authentication.util.AccessTokenValidator;
 import com.igot.cb.contentpartner.entity.ContentPartnerRegistrationEntity;
@@ -92,6 +93,7 @@ public class ContentPartnerRegistrationServiceImpl implements ContentPartnerRegi
         jsonNode.put(Constants.UPDATED_ON, currentTime.toString());
         jsonNode.put(Constants.STATUS, Constants.PENDING);
         jsonNode.put(Constants.APPLICATION_ID, applicationId);
+        addSearchTags(registrationDetails);
         ContentPartnerRegistrationEntity entity = new ContentPartnerRegistrationEntity();
         entity.setId(id);
         entity.setData(registrationDetails);
@@ -282,6 +284,33 @@ public class ContentPartnerRegistrationServiceImpl implements ContentPartnerRegi
             ProjectUtil.errorResponse(response, e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return response;
+    }
+
+    private JsonNode addSearchTags(JsonNode formattedData) {
+        List<String> searchTags = new ArrayList<>();
+
+        // Preserve existing searchTags if present
+        if (formattedData.has("searchTags") && formattedData.get("searchTags").isArray()) {
+            ArrayNode existingSearchTags = (ArrayNode) formattedData.get("searchTags");
+            existingSearchTags.forEach(tag -> {
+                if (tag.isTextual() && !tag.asText().isEmpty()) {
+                    searchTags.add(tag.asText());
+                }
+            });
+        }
+
+        if (formattedData.has("contentPartnerName")) {
+            String partnerName = formattedData.get("contentPartnerName").textValue();
+            if (StringUtils.isNotBlank(partnerName)) {
+                if (!searchTags.contains(partnerName.toLowerCase())) {
+                    searchTags.add(partnerName.toLowerCase());
+                }
+            }
+        }
+
+        ArrayNode searchTagsArray = objectMapper.valueToTree(searchTags);
+        ((ObjectNode) formattedData).put("searchTags", searchTagsArray);
+        return formattedData;
     }
 
 

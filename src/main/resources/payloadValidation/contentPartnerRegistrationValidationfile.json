@@ -28,6 +28,12 @@
     "status": {
       "type": "string",
       "enum": ["PENDING", "APPROVED", "REJECTED"]
+    },
+    "searchTags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     }
   },
   "required": [

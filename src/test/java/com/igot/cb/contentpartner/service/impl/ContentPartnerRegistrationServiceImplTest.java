@@ -2,6 +2,7 @@ package com.igot.cb.contentpartner.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.igot.cb.authentication.util.AccessTokenValidator;
 import com.igot.cb.contentpartner.entity.ContentPartnerRegistrationEntity;
@@ -417,4 +418,74 @@ class ContentPartnerRegistrationServiceImplTest {
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getResponseCode());
     }
+    @Test
+    void testAddSearchTags_whenPartnerNameBlank_thenPreservesExistingTags() {
+        ObjectNode input = realMapper.createObjectNode();
+        input.put("contentPartnerName", "   ");
+        ArrayNode existing = realMapper.createArrayNode();
+        existing.add("tag1");
+        input.set("searchTags", existing);
+
+        ReflectionTestUtils.setField(service, "objectMapper", realMapper);
+
+        Object result = ReflectionTestUtils.invokeMethod(service, "addSearchTags", input);
+        ObjectNode resNode = (ObjectNode) result;
+        ArrayNode tags = (ArrayNode) resNode.get("searchTags");
+        assertEquals(1, tags.size());
+        assertEquals("tag1", tags.get(0).asText());
+    }
+
+    @Test
+    void testAddSearchTags_whenSearchTagsNotArray_thenAddsLowercasePartnerName() {
+        ObjectNode input = realMapper.createObjectNode();
+        input.put("contentPartnerName", "OrgX");
+        ObjectNode nonArray = realMapper.createObjectNode();
+        nonArray.put("not", "array");
+        input.set("searchTags", nonArray);
+        ReflectionTestUtils.setField(service, "objectMapper", realMapper);
+
+        Object result = ReflectionTestUtils.invokeMethod(service, "addSearchTags", input);
+        ObjectNode resNode = (ObjectNode) result;
+        ArrayNode tags = (ArrayNode) resNode.get("searchTags");
+        assertEquals(1, tags.size());
+        assertEquals("orgx", tags.get(0).asText());
+    }
+
+    @Test
+    void testAddSearchTags_ignoresEmptyAndNonTextNodes_thenAddsPartnerName() {
+        ObjectNode input = realMapper.createObjectNode();
+        input.put("contentPartnerName", "PartnerY");
+        ArrayNode existing = realMapper.createArrayNode();
+        existing.add("");
+        existing.addNull();
+        existing.addPOJO(new Object());
+        input.set("searchTags", existing);
+        ReflectionTestUtils.setField(service, "objectMapper", realMapper);
+
+        Object result = ReflectionTestUtils.invokeMethod(service, "addSearchTags", input);
+        ObjectNode resNode = (ObjectNode) result;
+        ArrayNode tags = (ArrayNode) resNode.get("searchTags");
+        assertEquals(1, tags.size());
+        assertEquals("partnery", tags.get(0).asText());
+    }
+
+    @Test
+    void testAddSearchTags_noDuplicateWhenLowercasePresent() {
+        ObjectNode input = realMapper.createObjectNode();
+        input.put("contentPartnerName", "PartnerABC");
+        ArrayNode existing = realMapper.createArrayNode();
+        existing.add("PartnerABC");
+        existing.add("partnerabc");
+        input.set("searchTags", existing);
+        ReflectionTestUtils.setField(service, "objectMapper", realMapper);
+
+        Object result = ReflectionTestUtils.invokeMethod(service, "addSearchTags", input);
+        ObjectNode resNode = (ObjectNode) result;
+        ArrayNode tags = (ArrayNode) resNode.get("searchTags");
+        assertEquals(2, tags.size());
+        assertEquals("PartnerABC", tags.get(0).asText());
+        assertEquals("partnerabc", tags.get(1).asText());
+    }
+
+
 }

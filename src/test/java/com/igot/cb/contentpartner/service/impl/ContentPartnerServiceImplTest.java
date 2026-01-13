@@ -462,31 +462,23 @@ class ContentPartnerServiceImplTest {
         searchCriteria.setSearchString("validSearchString");
 
         SearchResult mockSearchResult = new SearchResult();
-        
-        // Mock Redis operations
+
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get(anyString())).thenReturn(null); // Cache miss
         
         when(esUtilService.searchDocuments(eq(Constants.CONTENT_PROVIDER_INDEX_NAME), any(SearchCriteria.class)))
                 .thenReturn(mockSearchResult);
 
-        // Act
         ApiResponse response = contentPartnerService.searchEntity(searchCriteria);
 
-        // Assert
         assertEquals(HttpStatus.OK, response.getResponseCode());
         assertEquals(Constants.SUCCESS, response.getParams().getStatus());
         
-        // Verify cache was checked and result was stored
+
         verify(valueOperations).get(anyString());
         verify(valueOperations).set(anyString(), eq(mockSearchResult), anyLong(), any());
     }
 
-    /**
-     * Test case for searchEntity method when search string is too short.
-     * This test verifies that the method returns a BAD_REQUEST response
-     * when the search string is less than 2 characters long.
-     */
     @Test
     void test_searchEntity_shortSearchString() {
         SearchCriteria searchCriteria = new SearchCriteria();
@@ -513,30 +505,21 @@ class ContentPartnerServiceImplTest {
         assertEquals("Minimum 3 characters are required to search", response.getParams().getErrMsg());
     }
 
-    /**
-     * Test case for searchEntity when result is found in Redis cache.
-     * This test verifies that the method returns cached results without hitting Elasticsearch.
-     */
     @Test
     void test_searchEntity_CacheHit() throws Exception {
-        // Arrange
         SearchCriteria searchCriteria = new SearchCriteria();
         searchCriteria.setSearchString("validSearchString");
 
         SearchResult cachedResult = new SearchResult();
-        
-        // Mock Redis operations - cache hit
+
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get(anyString())).thenReturn(cachedResult);
 
-        // Act
         ApiResponse response = contentPartnerService.searchEntity(searchCriteria);
 
-        // Assert
         assertEquals(HttpStatus.OK, response.getResponseCode());
         assertEquals(Constants.SUCCESS, response.getParams().getStatus());
-        
-        // Verify cache was checked but ES was NOT called
+
         verify(valueOperations).get(anyString());
         verify(esUtilService, never()).searchDocuments(any(), any());
         verify(valueOperations, never()).set(anyString(), any(), anyLong(), any());

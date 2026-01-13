@@ -206,7 +206,7 @@ public class CiosContentServiceImpl implements CiosContentService {
                 partnerCode = eachData.getContentPartner().get("partnerCode").asText();
                 JsonNode jsonNode = eachData.getContentData();
                 payloadValidation.validatePayload(Constants.CIOS_CONTENT_VALIDATION_FILE_JSON, jsonNode);
-                ObjectNode contentNode = (ObjectNode) jsonNode.path("content");
+                ObjectNode contentNode = (ObjectNode) jsonNode.path(Constants.CONTENT);
                 updateContentWithRequiredFields(contentNode, timestamp, eachData);
                 if (Constants.DRAFT.equalsIgnoreCase(eachData.getStatus())) {
                     log.info("Status of the data {}", eachData.getStatus());
@@ -223,7 +223,7 @@ public class CiosContentServiceImpl implements CiosContentService {
                     CiosContentEntity ciosContentEntity = createNewContent(jsonNode);
                     ciosRepository.save(ciosContentEntity);
                     log.info("Id of content created: {}", ciosContentEntity.getContentId());
-                    Map<String, Object> map = objectMapper.convertValue(ciosContentEntity.getCiosData().get("content"), Map.class);
+                    Map<String, Object> map = objectMapper.convertValue(ciosContentEntity.getCiosData().get(Constants.CONTENT), Map.class);
                     log.debug("map value for elastic search {}", map);
                     cacheService.putCache(ciosContentEntity.getContentId(), ciosContentEntity.getCiosData());
                     cacheService.putCache(ciosContentEntity.getExternalId() + "_" + ciosContentEntity.getPartnerId(), ciosContentEntity.getCiosData());
@@ -320,8 +320,8 @@ public class CiosContentServiceImpl implements CiosContentService {
         try {
             Timestamp currentTime = new Timestamp(System.currentTimeMillis());
             CiosContentEntity igotContent = new CiosContentEntity();
-            String externalId = ciosRequestInput.path("content").path("externalId").asText();
-            String partnerId = ciosRequestInput.path("content").path("contentPartner").get("id").asText();
+            String externalId = ciosRequestInput.path(Constants.CONTENT).path("externalId").asText();
+            String partnerId = ciosRequestInput.path(Constants.CONTENT).path("contentPartner").get("id").asText();
             Optional<CiosContentEntity> ciosContentEntity = ciosRepository.findByExternalIdAndPartnerId(externalId, partnerId);
             if (!ciosContentEntity.isPresent()) {
                 igotContent.setContentId(ciosRequestInput.path(Constants.CONTENT).path(Constants.CONTENT_ID).asText());
@@ -330,10 +330,10 @@ public class CiosContentServiceImpl implements CiosContentService {
                 igotContent.setLastUpdatedOn(currentTime);
                 igotContent.setIsActive(Constants.ACTIVE_STATUS);
                 igotContent.setPartnerId(partnerId);
-                ((ObjectNode) ciosRequestInput.path("content")).put("contentId", igotContent.getContentId());
-                ((ObjectNode) ciosRequestInput.path("content")).put(Constants.CREATED_ON, String.valueOf(currentTime));
-                ((ObjectNode) ciosRequestInput.path("content")).put(Constants.LAST_UPDATED_ON, String.valueOf(currentTime));
-                ((ObjectNode) ciosRequestInput.path("content")).put(Constants.STATUS, Constants.LIVE);
+                ((ObjectNode) ciosRequestInput.path(Constants.CONTENT)).put("contentId", igotContent.getContentId());
+                ((ObjectNode) ciosRequestInput.path(Constants.CONTENT)).put(Constants.CREATED_ON, String.valueOf(currentTime));
+                ((ObjectNode) ciosRequestInput.path(Constants.CONTENT)).put(Constants.LAST_UPDATED_ON, String.valueOf(currentTime));
+                ((ObjectNode) ciosRequestInput.path(Constants.CONTENT)).put(Constants.STATUS, Constants.LIVE);
                 igotContent.setCiosData(ciosRequestInput);
             } else {
                 igotContent.setContentId(ciosContentEntity.get().getContentId());
@@ -342,10 +342,10 @@ public class CiosContentServiceImpl implements CiosContentService {
                 igotContent.setLastUpdatedOn(currentTime);
                 igotContent.setIsActive(Constants.ACTIVE_STATUS);
                 igotContent.setPartnerId(partnerId);
-                ((ObjectNode) ciosRequestInput.path("content")).put("contentId", ciosContentEntity.get().getContentId());
-                ((ObjectNode) ciosRequestInput.path("content")).put(Constants.CREATED_ON, String.valueOf(igotContent.getCreatedOn()));
-                ((ObjectNode) ciosRequestInput.path("content")).put(Constants.LAST_UPDATED_ON, String.valueOf(currentTime));
-                ((ObjectNode) ciosRequestInput.path("content")).put(Constants.STATUS, Constants.LIVE);
+                ((ObjectNode) ciosRequestInput.path(Constants.CONTENT)).put("contentId", ciosContentEntity.get().getContentId());
+                ((ObjectNode) ciosRequestInput.path(Constants.CONTENT)).put(Constants.CREATED_ON, String.valueOf(igotContent.getCreatedOn()));
+                ((ObjectNode) ciosRequestInput.path(Constants.CONTENT)).put(Constants.LAST_UPDATED_ON, String.valueOf(currentTime));
+                ((ObjectNode) ciosRequestInput.path(Constants.CONTENT)).put(Constants.STATUS, Constants.LIVE);
                 igotContent.setCiosData(ciosRequestInput);
             }
             return igotContent;

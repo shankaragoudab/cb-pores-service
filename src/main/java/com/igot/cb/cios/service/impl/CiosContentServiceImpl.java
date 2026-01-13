@@ -31,6 +31,7 @@ import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -380,15 +381,14 @@ public class CiosContentServiceImpl implements CiosContentService {
         }
         
         try {
-            HashMap<String, Object> filterCriteriaMap = searchCriteria.getFilterCriteriaMap();
-            if (filterCriteriaMap == null) {
-                filterCriteriaMap = new HashMap<>();
-            }
-            if(filterCriteriaMap.get(Constants.IS_ACTIVE)==null){
-                filterCriteriaMap.put(Constants.IS_ACTIVE, true);
-            }
+            HashMap<String, Object> filterCriteriaMap =
+                    Optional.ofNullable(searchCriteria.getFilterCriteriaMap())
+                            .orElseGet(HashMap::new);
+
+            filterCriteriaMap.putIfAbsent(Constants.IS_ACTIVE, true);
+
             List<String> activePartnerIds = getActiveContentPartnerIds();
-            if (activePartnerIds != null && !activePartnerIds.isEmpty()) {
+            if (CollectionUtils.isNotEmpty(activePartnerIds)) {
                 filterCriteriaMap.put("contentPartner.id", activePartnerIds);
             }
             searchCriteria.setFilterCriteriaMap(filterCriteriaMap);
@@ -415,7 +415,7 @@ public class CiosContentServiceImpl implements CiosContentService {
             // Create search criteria for active partners, requesting only ID field
             SearchCriteria partnerSearchCriteria = new SearchCriteria();
             HashMap<String, Object> partnerFilterMap = new HashMap<>();
-            partnerFilterMap.put("isActive", true);
+            partnerFilterMap.put(Constants.IS_ACTIVE, true);
             partnerSearchCriteria.setFilterCriteriaMap(partnerFilterMap);
             partnerSearchCriteria.setRequestedFields(Arrays.asList(Constants.ID));
             partnerSearchCriteria.setPageNumber(0);
@@ -434,7 +434,6 @@ public class CiosContentServiceImpl implements CiosContentService {
                 return new ArrayList<>();
             }
 
-            // Convert to JsonNode for consistent processing
             JsonNode dataNode = (resultData instanceof JsonNode jsonNode)
                     ? jsonNode
                     : objectMapper.valueToTree(resultData);
@@ -444,7 +443,6 @@ public class CiosContentServiceImpl implements CiosContentService {
                 return new ArrayList<>();
             }
 
-            // Extract IDs using Java Streams - clean, functional, and efficient
             List<String> partnerIds = StreamSupport.stream(dataNode.spliterator(), false)
                     .map(partnerNode -> partnerNode.get(Constants.ID))
                     .filter(idNode -> idNode != null && !idNode.isNull())

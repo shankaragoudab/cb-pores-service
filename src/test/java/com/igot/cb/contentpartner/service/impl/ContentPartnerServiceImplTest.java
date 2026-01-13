@@ -19,6 +19,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -58,6 +60,13 @@ class ContentPartnerServiceImplTest {
 
     @Mock
     private PayloadValidation payloadValidation;
+    
+    @Mock
+    private RedisTemplate<String, SearchResult> redisTemplate;
+    
+    @Mock
+    private ValueOperations<String, SearchResult> valueOperations;
+    
     private ObjectMapper realObjectMapper = new ObjectMapper();
 
     private ContentPartnerEntity mockEntity;
@@ -324,12 +333,10 @@ class ContentPartnerServiceImplTest {
      */
     @Test
     void test_delete_emptyOrNullId() {
-        when(contentPartnerService.delete("")).thenCallRealMethod();
-
         ApiResponse response = contentPartnerService.delete("");
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getResponseCode());
-        assertEquals("Invalid Id", response.getParams().getErrMsg());
+        assertEquals(Constants.INVALID_ID, response.getParams().getErrMsg());
     }
 
     /**
@@ -455,6 +462,11 @@ class ContentPartnerServiceImplTest {
         searchCriteria.setSearchString("validSearchString");
 
         SearchResult mockSearchResult = new SearchResult();
+        
+        // Mock Redis operations
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get(anyString())).thenReturn(null); // Cache miss
+        
         when(esUtilService.searchDocuments(eq(Constants.CONTENT_PROVIDER_INDEX_NAME), any(SearchCriteria.class)))
                 .thenReturn(mockSearchResult);
 
@@ -464,6 +476,10 @@ class ContentPartnerServiceImplTest {
         // Assert
         assertEquals(HttpStatus.OK, response.getResponseCode());
         assertEquals(Constants.SUCCESS, response.getParams().getStatus());
+        
+        // Verify cache was checked and result was stored
+        verify(valueOperations).get(anyString());
+        verify(valueOperations).set(anyString(), eq(mockSearchResult), anyLong(), any());
     }
 
     /**
@@ -473,12 +489,12 @@ class ContentPartnerServiceImplTest {
      */
     @Test
     void test_searchEntity_shortSearchString() {
-        SearchCriteria searchCriteria = mock(SearchCriteria.class);
-        when(searchCriteria.getSearchString()).thenReturn("a");
+        SearchCriteria searchCriteria = new SearchCriteria();
+        searchCriteria.setSearchString("a");
 
         ApiResponse response = contentPartnerService.searchEntity(searchCriteria);
 
-        assertEquals(HttpStatus.OK, response.getResponseCode());
+        assertEquals(HttpStatus.BAD_REQUEST, response.getResponseCode());
         assertEquals("Minimum 3 characters are required to search", response.getParams().getErrMsg());
     }
 
@@ -493,8 +509,37 @@ class ContentPartnerServiceImplTest {
 
         ApiResponse response = contentPartnerService.searchEntity(searchCriteria);
 
-        assertEquals(HttpStatus.OK, response.getResponseCode());
+        assertEquals(HttpStatus.BAD_REQUEST, response.getResponseCode());
         assertEquals("Minimum 3 characters are required to search", response.getParams().getErrMsg());
+    }
+
+    /**
+     * Test case for searchEntity when result is found in Redis cache.
+     * This test verifies that the method returns cached results without hitting Elasticsearch.
+     */
+    @Test
+    void test_searchEntity_CacheHit() throws Exception {
+        // Arrange
+        SearchCriteria searchCriteria = new SearchCriteria();
+        searchCriteria.setSearchString("validSearchString");
+
+        SearchResult cachedResult = new SearchResult();
+        
+        // Mock Redis operations - cache hit
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get(anyString())).thenReturn(cachedResult);
+
+        // Act
+        ApiResponse response = contentPartnerService.searchEntity(searchCriteria);
+
+        // Assert
+        assertEquals(HttpStatus.OK, response.getResponseCode());
+        assertEquals(Constants.SUCCESS, response.getParams().getStatus());
+        
+        // Verify cache was checked but ES was NOT called
+        verify(valueOperations).get(anyString());
+        verify(esUtilService, never()).searchDocuments(any(), any());
+        verify(valueOperations, never()).set(anyString(), any(), anyLong(), any());
     }
 
     @Test

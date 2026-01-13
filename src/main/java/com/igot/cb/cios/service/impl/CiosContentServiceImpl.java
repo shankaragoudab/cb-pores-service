@@ -45,6 +45,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 
 @Service
@@ -137,17 +138,17 @@ public class CiosContentServiceImpl implements CiosContentService {
         if (ciosContentEntity.isPresent()) {
             CiosContentEntity fetchedEntity = ciosContentEntity.get();
             JsonNode fetchedJsonData = fetchedEntity.getCiosData();
-            String partnerCode = fetchedJsonData.path("content").path("contentPartner").get("partnerCode").asText();
-            ((ObjectNode) fetchedJsonData.path("content")).put(Constants.UPDATED_ON, String.valueOf(currentTime));
-            ((ObjectNode) fetchedJsonData.path("content")).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS_FALSE);
-            ((ObjectNode) fetchedJsonData.path("content")).put(Constants.STATUS, Constants.DRAFT);
+            String partnerCode = fetchedJsonData.path(Constants.CONTENT).path("contentPartner").get("partnerCode").asText();
+            ((ObjectNode) fetchedJsonData.path(Constants.CONTENT)).put(Constants.UPDATED_ON, String.valueOf(currentTime));
+            ((ObjectNode) fetchedJsonData.path(Constants.CONTENT)).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS_FALSE);
+            ((ObjectNode) fetchedJsonData.path(Constants.CONTENT)).put(Constants.STATUS, Constants.DRAFT);
             fetchedEntity.setCiosData(fetchedJsonData);
             fetchedEntity.setLastUpdatedOn(currentTime);
             fetchedEntity.setIsActive(false);
             ciosRepository.save(fetchedEntity);
             apiCallToCiosSecondaryDbForUpdateData(fetchedJsonData);
             fetchAndUpdateContentCountsInPartnerDb(partnerCode);
-            Map<String, Object> map = objectMapper.convertValue(fetchedEntity.getCiosData().get("content"), Map.class);
+            Map<String, Object> map = objectMapper.convertValue(fetchedEntity.getCiosData().get(Constants.CONTENT), Map.class);
             esUtilService.addDocument(Constants.CIOS_INDEX_NAME, Constants.INDEX_TYPE, fetchedEntity.getContentId(), map, cbServerProperties.getElasticCiosJsonPath());
             cacheService.deleteCache(fetchedEntity.getContentId());
             log.info("deleted content");
@@ -377,21 +378,26 @@ public class CiosContentServiceImpl implements CiosContentService {
             log.error("searchCriteria is null");
             throw new CustomException("ERROR", "Search criteria must not be null", HttpStatus.BAD_REQUEST);
         }
-        SearchResult searchResult = redisTemplate.opsForValue()
-                .get(generateRedisJwtTokenKey(searchCriteria));
-        if (searchResult != null) {
-            log.info("CiosContentServiceImpl::searchCotent:  search result fetched from redis");
-            return searchResult;
-        }
+        
         try {
             HashMap<String, Object> filterCriteriaMap = searchCriteria.getFilterCriteriaMap();
             if (filterCriteriaMap == null) {
                 filterCriteriaMap = new HashMap<>();
             }
-            if(filterCriteriaMap.get("isActive")==null){
-                filterCriteriaMap.put("isActive", true);
+            if(filterCriteriaMap.get(Constants.IS_ACTIVE)==null){
+                filterCriteriaMap.put(Constants.IS_ACTIVE, true);
+            }
+            List<String> activePartnerIds = getActiveContentPartnerIds();
+            if (activePartnerIds != null && !activePartnerIds.isEmpty()) {
+                filterCriteriaMap.put("contentPartner.id", activePartnerIds);
             }
             searchCriteria.setFilterCriteriaMap(filterCriteriaMap);
+            SearchResult searchResult = redisTemplate.opsForValue()
+                    .get(generateRedisJwtTokenKey(searchCriteria));
+            if (searchResult != null) {
+                log.info("CiosContentServiceImpl::searchCotent: search result fetched from redis cache");
+                return searchResult;
+            }
             searchResult = esUtilService.searchDocuments(Constants.CIOS_INDEX_NAME, searchCriteria);
             redisTemplate.opsForValue()
                     .set(generateRedisJwtTokenKey(searchCriteria), searchResult, searchResultRedisTtl,
@@ -401,6 +407,57 @@ public class CiosContentServiceImpl implements CiosContentService {
             throw new CustomException("ERROR", e.getMessage(), HttpStatus.BAD_REQUEST);
         }
 
+    }
+
+    private List<String> getActiveContentPartnerIds() {
+        log.info("CiosContentServiceImpl::getActiveContentPartnerIds: Fetching active content partner IDs");
+        try {
+            // Create search criteria for active partners, requesting only ID field
+            SearchCriteria partnerSearchCriteria = new SearchCriteria();
+            HashMap<String, Object> partnerFilterMap = new HashMap<>();
+            partnerFilterMap.put("isActive", true);
+            partnerSearchCriteria.setFilterCriteriaMap(partnerFilterMap);
+            partnerSearchCriteria.setRequestedFields(Arrays.asList(Constants.ID));
+            partnerSearchCriteria.setPageNumber(0);
+            partnerSearchCriteria.setPageSize(500);
+
+            ApiResponse response = contentPartnerService.searchEntity(partnerSearchCriteria);
+            
+            if (response == null || response.getResponseCode() != HttpStatus.OK) {
+                log.warn("CiosContentServiceImpl::getActiveContentPartnerIds: Invalid response from content partner service");
+                return new ArrayList<>();
+            }
+
+            Object resultData = response.get(Constants.DATA);
+            if (resultData == null) {
+                log.warn("CiosContentServiceImpl::getActiveContentPartnerIds: No data in response");
+                return new ArrayList<>();
+            }
+
+            // Convert to JsonNode for consistent processing
+            JsonNode dataNode = (resultData instanceof JsonNode jsonNode)
+                    ? jsonNode
+                    : objectMapper.valueToTree(resultData);
+
+            if (dataNode == null || !dataNode.isArray()) {
+                log.warn("CiosContentServiceImpl::getActiveContentPartnerIds: Data is not an array");
+                return new ArrayList<>();
+            }
+
+            // Extract IDs using Java Streams - clean, functional, and efficient
+            List<String> partnerIds = StreamSupport.stream(dataNode.spliterator(), false)
+                    .map(partnerNode -> partnerNode.get(Constants.ID))
+                    .filter(idNode -> idNode != null && !idNode.isNull())
+                    .map(JsonNode::asText)
+                    .filter(StringUtils::isNotBlank)
+                    .toList();
+            
+            log.info("CiosContentServiceImpl::getActiveContentPartnerIds: Found {} active content partners", partnerIds.size());
+            return partnerIds;
+        } catch (Exception e) {
+            log.error("CiosContentServiceImpl::getActiveContentPartnerIds: Error fetching active content partner IDs", e);
+            return new ArrayList<>();
+        }
     }
 
     private String generateRedisJwtTokenKey(Object requestPayload) {

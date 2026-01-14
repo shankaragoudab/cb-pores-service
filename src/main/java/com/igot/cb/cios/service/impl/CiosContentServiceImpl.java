@@ -389,7 +389,7 @@ public class CiosContentServiceImpl implements CiosContentService {
 
             List<String> activePartnerIds = getActiveContentPartnerIds();
             if (CollectionUtils.isNotEmpty(activePartnerIds)) {
-                filterCriteriaMap.put("contentPartner.id", new ArrayList<>(activePartnerIds));
+                filterCriteriaMap.put("contentPartner.id", new ArrayList<String>(activePartnerIds));
             }
             searchCriteria.setFilterCriteriaMap(filterCriteriaMap);
             SearchResult searchResult = redisTemplate.opsForValue()

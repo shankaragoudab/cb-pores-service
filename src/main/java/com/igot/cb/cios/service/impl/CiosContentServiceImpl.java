@@ -382,7 +382,7 @@ public class CiosContentServiceImpl implements CiosContentService {
         }
         
         try {
-            if(MapUtils.isEmpty(searchCriteria.getFilterCriteriaMap())) {
+            if (MapUtils.isEmpty(searchCriteria.getFilterCriteriaMap())) {
                 HashMap<String, Object> filterCriteriaMap =
                         Optional.ofNullable(searchCriteria.getFilterCriteriaMap())
                                 .orElseGet(HashMap::new);

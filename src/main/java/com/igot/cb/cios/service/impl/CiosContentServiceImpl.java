@@ -114,7 +114,7 @@ public class CiosContentServiceImpl implements CiosContentService {
                 throw new RuntimeException(e);
             }
         } else {
-            Optional<CiosContentEntity> optionalJsonNodeEntity = ciosRepository.findByContentIdAndIsActive(contentId, true);
+            Optional<CiosContentEntity> optionalJsonNodeEntity = ciosRepository.findByContentId(contentId);
             if (optionalJsonNodeEntity.isPresent()) {
                 CiosContentEntity ciosContentEntity = optionalJsonNodeEntity.get();
                 cacheService.putCache(contentId, ciosContentEntity.getCiosData());
@@ -497,8 +497,8 @@ public class CiosContentServiceImpl implements CiosContentService {
         }
         if (!CollectionUtils.isEmpty(successContentIds)) {
             try {
-                ciosRepository.bulkUpdateIsActiveAndJson(successContentIds, targetIsActive);
-                log.info(Constants.LOG_DB_BULK_UPDATE_SUCCESS, successContentIds);
+                int updatedCount = ciosRepository.bulkUpdateJsonIsActive(successContentIds, targetIsActive);
+                log.info(Constants.LOG_DB_BULK_UPDATE_SUCCESS, successContentIds.size(), updatedCount);
             } catch (Exception ex) {
                 log.error(Constants.LOG_DB_BULK_UPDATE_FAILURE, successContentIds, ex);
             }

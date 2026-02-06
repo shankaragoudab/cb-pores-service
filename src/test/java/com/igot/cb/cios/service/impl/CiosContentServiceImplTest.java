@@ -199,7 +199,7 @@ class CiosContentServiceImplTest {
         assertEquals(HttpStatus.BAD_REQUEST, exception.getHttpStatusCode());
 
         verify(cacheService, times(1)).getCache(contentId);
-        verify(ciosRepository, times(1)).findByContentIdAndIsActive(contentId, true);
+        verify(ciosRepository, times(1)).findByContentId(contentId);
     }
 
     /**
@@ -809,7 +809,7 @@ class CiosContentServiceImplTest {
 
         CiosContentEntity entity = new CiosContentEntity();
         entity.setCiosData(node);
-        when(ciosRepository.findByContentIdAndIsActive(eq(contentId), eq(true)))
+        when(ciosRepository.findByContentId(eq(contentId)))
                 .thenReturn(Optional.of(entity));
         when(objectMapper.convertValue(eq(node), ArgumentMatchers.<TypeReference<Object>>any()))
                 .thenReturn(Map.of("key", "value"));
@@ -823,7 +823,7 @@ class CiosContentServiceImplTest {
         assertEquals("value", ((Map<?, ?>) result).get("key"));
 
         verify(cacheService).getCache(contentId);
-        verify(ciosRepository).findByContentIdAndIsActive(contentId, true);
+        verify(ciosRepository).findByContentId(contentId);
         verify(cacheService).putCache(eq(contentId), eq(node));
         verify(objectMapper).convertValue(eq(node), ArgumentMatchers.<TypeReference<Object>>any());
     }

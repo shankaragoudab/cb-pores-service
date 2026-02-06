@@ -19,13 +19,26 @@ public interface CiosRepository extends JpaRepository<CiosContentEntity,String> 
     Optional<CiosContentEntity> findByExternalIdAndPartnerId(String externalId,String PartnerId);
     Optional<CiosContentEntity> findByExternalId(String externalId);
 
+    Optional<CiosContentEntity> findByContentId(String contentId);
     Optional<CiosContentEntity> findByContentIdAndIsActive(String contentId, boolean b);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Transactional
     @Query(value = """
-            UPDATE cios_content_entity
-            SET cios_data = jsonb_set(cios_data,'{content,contentPartner,isActive}',to_jsonb(:isActive),true),is_active = :isActive,last_updated_on = now() WHERE content_id IN (:contentIds)
-            """, nativeQuery = true)
-    int bulkUpdateIsActiveAndJson(@Param("contentIds") List<String> contentIds, @Param("isActive") boolean isActive);
+        UPDATE cios_content_entity
+        SET
+            cios_data = jsonb_set(
+                cios_data,
+                '{content,contentPartner,isActive}',
+                to_jsonb(:isActive),
+                true
+            ),
+            last_updated_on = now()
+        WHERE content_id IN (:contentIds)
+        """, nativeQuery = true)
+    int bulkUpdateJsonIsActive(
+            @Param("contentIds") List<String> contentIds,
+            @Param("isActive") boolean isActive
+    );
+
 }

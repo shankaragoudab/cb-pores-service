@@ -9,6 +9,7 @@ import com.igot.cb.pores.cache.CacheService;
 import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 import com.igot.cb.pores.elasticsearch.dto.SearchResult;
 import com.igot.cb.pores.elasticsearch.service.EsUtilService;
+import com.igot.cb.pores.Service.OutboundRequestHandlerServiceImpl;
 import com.igot.cb.pores.util.ApiResponse;
 import com.igot.cb.pores.util.CbServerProperties;
 import com.igot.cb.pores.util.Constants;
@@ -75,6 +76,9 @@ class ContentPartnerServiceImplTest {
 
     @Mock
     private SecureRandom secureRandom;
+
+    @Mock
+    private OutboundRequestHandlerServiceImpl outboundRequestHandlerService;
 
     private ObjectMapper realObjectMapper = new ObjectMapper();
 
@@ -553,6 +557,7 @@ class ContentPartnerServiceImplTest {
         // Assert
         assertEquals(HttpStatus.OK, response.getResponseCode());
         assertNotNull(response.getResult());
+        assertFalse(input.has(Constants.PROVIDER_PREFERENCE));
 
         verify(entityRepository).findByContentPartnerName("TestPartner");
         verify(entityRepository, atLeastOnce()).findByPartnerCode(anyString());
@@ -860,6 +865,166 @@ class ContentPartnerServiceImplTest {
 
         assertEquals(HttpStatus.OK, resp.getResponseCode());
         verify(entityRepository).save(any(ContentPartnerEntity.class));
+    }
+
+    @Test
+    void testUpdateContentPartner_ProviderPreferenceEnabled_SavedWithoutSendingOverAllLimit() {
+        ObjectNode dataNode = realObjectMapper.createObjectNode();
+        dataNode.put(Constants.CONTENT_PARTNER_NAME, "UpdatedName");
+        dataNode.put(Constants.PROVIDER_PREFERENCE, true);
+        mockSuccessfulSave(dataNode);
+        mockRebalanceResponse(Map.of(Constants.RESPONSE_CODE, Constants.OK));
+
+        ApiResponse resp = contentPartnerService.createOrUpdate(
+                providerPreferenceRequest(dataNode, existingPartnerData(null, 0)));
+
+        assertEquals(HttpStatus.OK, resp.getResponseCode());
+        ArgumentCaptor<ContentPartnerEntity> captor = ArgumentCaptor.forClass(ContentPartnerEntity.class);
+        verify(entityRepository).save(captor.capture());
+        assertTrue(captor.getValue().getData().get(Constants.PROVIDER_PREFERENCE).asBoolean());
+        assertEquals(0, captor.getValue().getData().get(Constants.OVER_ALL_LIMIT).asInt());
+        verifyRebalanceRequest(0L);
+    }
+
+    @Test
+    void testUpdateContentPartner_ProviderPreferenceEnabled_RebalanceFails_NotSaved() {
+        ObjectNode dataNode = realObjectMapper.createObjectNode();
+        dataNode.put(Constants.CONTENT_PARTNER_NAME, "UpdatedName");
+        dataNode.put(Constants.PROVIDER_PREFERENCE, true);
+        mockRebalanceResponse(null);
+
+        ApiResponse resp = contentPartnerService.createOrUpdate(
+                providerPreferenceRequest(dataNode, existingPartnerData(false, 100)));
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, resp.getResponseCode());
+        assertEquals(Constants.FAILED, resp.getParams().getStatus());
+        assertEquals(Constants.USER_GROUP_LICENCE_REBALANCE_FAILED, resp.getParams().getErrMsg());
+        verifyRebalanceRequest(100L);
+        verify(entityRepository, never()).save(any());
+    }
+
+    @Test
+    void testUpdateContentPartner_RebalanceNotOk_NotSaved() {
+        ObjectNode dataNode = realObjectMapper.createObjectNode();
+        dataNode.put(Constants.CONTENT_PARTNER_NAME, "UpdatedName");
+        dataNode.put(Constants.OVER_ALL_LIMIT, 50);
+        mockRebalanceResponse(Map.of(Constants.RESPONSE_CODE, HttpStatus.BAD_REQUEST.name()));
+
+        ApiResponse resp = contentPartnerService.createOrUpdate(
+                providerPreferenceRequest(dataNode, existingPartnerData(true, 100)));
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, resp.getResponseCode());
+        assertEquals(Constants.USER_GROUP_LICENCE_REBALANCE_FAILED, resp.getParams().getErrMsg());
+        verify(entityRepository, never()).save(any());
+    }
+
+    @Test
+    void testUpdateContentPartner_OverAllLimitLoweredWhilePreferenceOn_Rebalanced() {
+        ObjectNode dataNode = realObjectMapper.createObjectNode();
+        dataNode.put(Constants.CONTENT_PARTNER_NAME, "UpdatedName");
+        dataNode.put(Constants.OVER_ALL_LIMIT, 50);
+        mockSuccessfulSave(dataNode);
+        mockRebalanceResponse(Map.of(Constants.RESPONSE_CODE, Constants.OK));
+
+        ApiResponse resp = contentPartnerService.createOrUpdate(
+                providerPreferenceRequest(dataNode, existingPartnerData(true, 100)));
+
+        assertEquals(HttpStatus.OK, resp.getResponseCode());
+        verifyRebalanceRequest(50L);
+        verify(entityRepository).save(any(ContentPartnerEntity.class));
+    }
+
+    @Test
+    void testUpdateContentPartner_OverAllLimitRaisedWhilePreferenceOn_NotRebalanced() {
+        ObjectNode dataNode = realObjectMapper.createObjectNode();
+        dataNode.put(Constants.CONTENT_PARTNER_NAME, "UpdatedName");
+        dataNode.put(Constants.OVER_ALL_LIMIT, 150);
+        mockSuccessfulSave(dataNode);
+
+        ApiResponse resp = contentPartnerService.createOrUpdate(
+                providerPreferenceRequest(dataNode, existingPartnerData(true, 100)));
+
+        assertEquals(HttpStatus.OK, resp.getResponseCode());
+        verifyNoInteractions(outboundRequestHandlerService);
+    }
+
+    @Test
+    void testUpdateContentPartner_OverAllLimitLoweredWhilePreferenceOff_NotRebalanced() {
+        ObjectNode dataNode = realObjectMapper.createObjectNode();
+        dataNode.put(Constants.CONTENT_PARTNER_NAME, "UpdatedName");
+        dataNode.put(Constants.OVER_ALL_LIMIT, 50);
+        mockSuccessfulSave(dataNode);
+
+        ApiResponse resp = contentPartnerService.createOrUpdate(
+                providerPreferenceRequest(dataNode, existingPartnerData(null, 100)));
+
+        assertEquals(HttpStatus.OK, resp.getResponseCode());
+        verifyNoInteractions(outboundRequestHandlerService);
+    }
+
+    private void mockRebalanceResponse(Map<String, Object> rebalanceResponse) {
+        when(cbServerProperties.getCbExtCourseServiceHost()).thenReturn("http://ext-course");
+        when(cbServerProperties.getProviderAccessSettingsRebalancePath()).thenReturn("/rebalance");
+        when(outboundRequestHandlerService.fetchResultUsingPost(eq("http://ext-course/rebalance"), any()))
+                .thenReturn(rebalanceResponse);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void verifyRebalanceRequest(long overAllLimit) {
+        ArgumentCaptor<Object> captor = ArgumentCaptor.forClass(Object.class);
+        verify(outboundRequestHandlerService).fetchResultUsingPost(eq("http://ext-course/rebalance"), captor.capture());
+        Map<String, Object> request = (Map<String, Object>) captor.getValue();
+        assertEquals("id-123", request.get(Constants.PARTNER_ID));
+        assertEquals(overAllLimit, request.get(Constants.OVER_ALL_LIMIT));
+    }
+
+    @Test
+    void testUpdateContentPartner_ProviderPreferenceDisabled_Saved() {
+        ObjectNode dataNode = realObjectMapper.createObjectNode();
+        dataNode.put(Constants.CONTENT_PARTNER_NAME, "UpdatedName");
+        dataNode.put(Constants.PROVIDER_PREFERENCE, false);
+        mockSuccessfulSave(dataNode);
+
+        ApiResponse resp = contentPartnerService.createOrUpdate(
+                providerPreferenceRequest(dataNode, existingPartnerData(true, 0)));
+
+        assertEquals(HttpStatus.OK, resp.getResponseCode());
+        verify(entityRepository).save(any(ContentPartnerEntity.class));
+        verifyNoInteractions(outboundRequestHandlerService);
+    }
+
+    private ObjectNode existingPartnerData(Boolean providerPreference, int overAllLimit) {
+        ObjectNode existingData = realObjectMapper.createObjectNode();
+        existingData.put(Constants.PARTNERCODE, "PCODE");
+        existingData.put(Constants.OVER_ALL_LIMIT, overAllLimit);
+        if (providerPreference != null) {
+            existingData.put(Constants.PROVIDER_PREFERENCE, providerPreference);
+        }
+        return existingData;
+    }
+
+    private ObjectNode providerPreferenceRequest(ObjectNode dataNode, ObjectNode existingData) {
+        ObjectNode request = realObjectMapper.createObjectNode();
+        request.put(Constants.ID, "id-123");
+        request.set(Constants.DATA, dataNode);
+        ContentPartnerEntity existing = new ContentPartnerEntity();
+        existing.setId("id-123");
+        existing.setCreatedOn(new Timestamp(System.currentTimeMillis() - 10000));
+        existing.setData(existingData);
+        when(entityRepository.findById("id-123")).thenReturn(Optional.of(existing));
+        when(entityRepository.findByContentPartnerName("UpdatedName")).thenReturn(Optional.empty());
+        return request;
+    }
+
+    private void mockSuccessfulSave(ObjectNode dataNode) {
+        ContentPartnerEntity saved = new ContentPartnerEntity();
+        saved.setId("id-123");
+        saved.setData(dataNode);
+        when(entityRepository.save(any(ContentPartnerEntity.class))).thenReturn(saved);
+        when(objectMapper.convertValue(any(), any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .thenReturn(new HashMap<>());
+        when(objectMapper.convertValue(any(), eq(Map.class))).thenReturn(new HashMap<>());
+        when(cbServerProperties.getElasticContentJsonPath()).thenReturn("elastic-path");
     }
 
     @Test

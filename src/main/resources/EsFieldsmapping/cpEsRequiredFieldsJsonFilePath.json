@@ -69,5 +69,8 @@
   },
   "overAllLimit": {
     "type": "number"
+  },
+  "providerPreference": {
+    "type": "boolean"
   }
 }

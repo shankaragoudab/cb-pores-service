@@ -12,6 +12,7 @@ import com.igot.cb.contentpartner.entity.ContentPartnerEntity;
 import com.igot.cb.contentpartner.repository.ContentPartnerRepository;
 import com.igot.cb.contentpartner.service.ContentPartnerService;
 import com.igot.cb.playlist.util.ProjectUtil;
+import com.igot.cb.pores.Service.OutboundRequestHandlerServiceImpl;
 import com.igot.cb.pores.cache.CacheService;
 import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 import com.igot.cb.pores.elasticsearch.dto.SearchResult;
@@ -62,6 +63,9 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
     @Autowired
     private SecureRandom secureRandom;
 
+    @Autowired
+    private OutboundRequestHandlerServiceImpl outboundRequestHandlerService;
+
     @Value("${search.result.redis.ttl}")
     private long searchResultRedisTtl;
 
@@ -109,6 +113,12 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 response.setResponseCode(HttpStatus.BAD_REQUEST);
                 return response;
             }
+            if (!rebalanceUserGroupLicences(existingId, jsonEntity.getData(), data)) {
+                response.getParams().setErrMsg(Constants.USER_GROUP_LICENCE_REBALANCE_FAILED);
+                response.getParams().setStatus(Constants.FAILED);
+                response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+                return response;
+            }
             String partnerCode = jsonEntity.getData().path(Constants.PARTNERCODE).asText();
             createContentPartnerEntity(jsonEntity, partnerDetails);
             ContentPartnerEntity updateJsonEntity = entityRepository.save(jsonEntity);
@@ -138,6 +148,34 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
             response.setResponseCode(HttpStatus.BAD_REQUEST);
         }
         return response;
+    }
+
+    /**
+     * With providerPreference true, the Over All Limit is distributed to the provider's user groups
+     * (cb-ext-course-service). When the preference is switched on, or the Over All Limit is lowered
+     * while it is on, the group allocations are rebalanced to the new limit before the provider is
+     * saved. A missing providerPreference is read as false. Returns false when the rebalance fails,
+     * so the update is refused.
+     */
+    private boolean rebalanceUserGroupLicences(String partnerId, JsonNode existingData, JsonNode incomingData) {
+        boolean oldPreference = existingData.path(Constants.PROVIDER_PREFERENCE).asBoolean(false);
+        boolean newPreference = incomingData.path(Constants.PROVIDER_PREFERENCE).asBoolean(oldPreference);
+        long oldLimit = existingData.path(Constants.OVER_ALL_LIMIT).asLong(0);
+        long newLimit = incomingData.path(Constants.OVER_ALL_LIMIT).asLong(oldLimit);
+        if (!newPreference || (oldPreference && newLimit >= oldLimit)) {
+            return true;
+        }
+        Map<String, Object> request = new HashMap<>();
+        request.put(Constants.PARTNER_ID, partnerId);
+        request.put(Constants.OVER_ALL_LIMIT, newLimit);
+        String url = cbServerProperties.getCbExtCourseServiceHost() + cbServerProperties.getProviderAccessSettingsRebalancePath();
+        Object rebalanceResponse = outboundRequestHandlerService.fetchResultUsingPost(url, request);
+        if (rebalanceResponse instanceof Map<?, ?> responseMap
+                && Constants.OK.equalsIgnoreCase(String.valueOf(responseMap.get(Constants.RESPONSE_CODE)))) {
+            return true;
+        }
+        log.error("Failed to rebalance user group licences for partnerId: {}, response: {}", partnerId, rebalanceResponse);
+        return false;
     }
 
     private void createContentPartnerEntity(ContentPartnerEntity jsonEntity,JsonNode partnerDetails) {

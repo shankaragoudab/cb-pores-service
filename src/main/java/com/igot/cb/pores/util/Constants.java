@@ -535,6 +535,8 @@ public class Constants {
     public static final String REQUIRED_KARMA_COINS = "requiredKarmaCoins";
     public static final String KARMA_COIN_MULTIPLIER = "karmaCoinMultiplier";
     public static final String COMPATIBILITY_LEVEL = "compatibilityLevel";
+    public static final String PROVIDER_PREFERENCE = "providerPreference";
+    public static final String USER_GROUP_LICENCE_REBALANCE_FAILED = "Failed to rebalance user group licences; provider not updated";
 
     private Constants() {
     }
